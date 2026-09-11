@@ -696,8 +696,8 @@ export default function SinglePageATSApp() {
       fetchSettings();
     }
   }, [activeTab, demandSearch, statusFilter, priorityFilter, roleTypeFilter, redFlagsOnly,
-      candidateSearch, candidateSourceFilter, candidateStageFilter, interviewSearch, levelFilter, modeFilter, interviewStatusFilter, linkStatusFilter,
-      offerStatusFilter, bgvFilter, offersSubTab]);
+    candidateSearch, candidateSourceFilter, candidateStageFilter, interviewSearch, levelFilter, modeFilter, interviewStatusFilter, linkStatusFilter,
+    offerStatusFilter, bgvFilter, offersSubTab]);
 
   /* ─────────────── FORM HANDLERS ─────────────── */
 
@@ -1152,81 +1152,81 @@ export default function SinglePageATSApp() {
                 </div>
                 <div className="card-body">
                   {loadingDemands ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading demands...</div>
-                  : demands.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No demands found matching filters.</div>
-                  : (
-                    <table className="data-table">
-                      <thead><tr><th>Request ID</th><th>VMS ID</th><th>Client</th><th>Skill / Requirement</th><th>Type</th><th>Priority</th><th>Status</th><th>Days Open</th><th>AM</th><th>Actions</th></tr></thead>
-                      <tbody>
-                        {demands.filter(d => !roleTypeFilter || (d.role_category || 'Permanent') === roleTypeFilter).map(item => (
-                          <tr key={item.id}>
-                            <td>
-                              <button
-                                onClick={() => openLifecycle(item.request_id)}
-                                title="Click to view full Requirement Lifecycle & Candidate History"
-                                style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.83rem', textAlign: 'left' }}
-                              >
-                                <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '4px', fontSize: '0.75rem' }}></i>
-                                {item.request_id}
-                              </button>
-                            </td>
-                            <td>{item.external_requisition_id || '—'}</td>
-                            <td className="font-medium">{item.client_name || 'Costaff Client'}</td>
-                            <td>{item.skill_description}</td>
-                            <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#f0f9ff', color: '#0369a1' }}>{item.role_category || 'Permanent'}</span></td>
-                            <td><span className={`priority-tag ${item.priority === 'High' ? 'high' : ''}`}>{item.priority}</span></td>
-                            <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600', backgroundColor: item.status === 'Open' ? '#ecfdf5' : '#f1f5f9', color: item.status === 'Open' ? '#10b981' : '#64748b' }}>{item.status}</span></td>
-                            <td><span className={`days-badge ${item.is_red_flag ? 'red' : ''}`}>{item.days_open} Days {item.is_red_flag && '🔴'}</span></td>
-                            <td>{item.am_name || 'Unassigned'}</td>
-                            <td>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <button
-                                  onClick={() => {
-                                    setEditingDemand(item);
-                                    setDemandForm({
-                                      request_id: item.request_id || '',
-                                      external_requisition_id: item.external_requisition_id || '',
-                                      client_name: item.client_name || '',
-                                      skill_description: item.skill_description || '',
-                                      role_category: item.role_category || 'Permanent',
-                                      priority: item.priority || 'High',
-                                      status: item.status || 'Open',
-                                      experience_level: item.experience_level || '',
-                                      budget_min: item.budget_min ? item.budget_min.toString() : '',
-                                      budget_max: item.budget_max ? item.budget_max.toString() : '',
-                                      locations: Array.isArray(item.locations) ? item.locations.join(', ') : '',
-                                      num_positions: item.num_positions || 1,
-                                      am_name: item.am_name || '',
-                                      am_email: '',
-                                      notes: item.notes || ''
-                                    });
-                                    setShowEditDemandModal(true);
-                                  }}
-                                  style={{ padding: '4px 8px', border: '1px solid #cbd5e1', background: '#fff', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                >
-                                  <i className="fa-solid fa-pen-to-square"></i> Edit
-                                </button>
-                                {deletingItem?.id === item.id ? (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
-                                    <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: '700' }}>Confirm?</span>
-                                    <button onClick={() => handleDelete(item.id, 'demand')} style={{ border: 'none', background: '#dc2626', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '700' }}>Yes</button>
-                                    <button onClick={() => setDeletingItem(null)} style={{ border: 'none', background: '#94a3b8', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer' }}>No</button>
-                                  </span>
-                                ) : (
+                    : demands.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No demands found matching filters.</div>
+                      : (
+                        <table className="data-table">
+                          <thead><tr><th>Request ID</th><th>VMS ID</th><th>Client</th><th>Skill / Requirement</th><th>Type</th><th>Priority</th><th>Status</th><th>Days Open</th><th>AM</th><th>Actions</th></tr></thead>
+                          <tbody>
+                            {demands.filter(d => !roleTypeFilter || (d.role_category || 'Permanent') === roleTypeFilter).map(item => (
+                              <tr key={item.id}>
+                                <td>
                                   <button
-                                    onClick={() => setDeletingItem({ id: item.id, type: 'demand' })}
-                                    title="Delete Demand"
-                                    style={{ padding: '4px 8px', border: '1px solid #fee2e2', background: '#fff5f5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                    onClick={() => openLifecycle(item.request_id)}
+                                    title="Click to view full Requirement Lifecycle & Candidate History"
+                                    style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.83rem', textAlign: 'left' }}
                                   >
-                                    <i className="fa-solid fa-trash-can"></i> Delete
+                                    <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '4px', fontSize: '0.75rem' }}></i>
+                                    {item.request_id}
                                   </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
+                                </td>
+                                <td>{item.external_requisition_id || '—'}</td>
+                                <td className="font-medium">{item.client_name || 'Costaff Client'}</td>
+                                <td>{item.skill_description}</td>
+                                <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#f0f9ff', color: '#0369a1' }}>{item.role_category || 'Permanent'}</span></td>
+                                <td><span className={`priority-tag ${item.priority === 'High' ? 'high' : ''}`}>{item.priority}</span></td>
+                                <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600', backgroundColor: item.status === 'Open' ? '#ecfdf5' : '#f1f5f9', color: item.status === 'Open' ? '#10b981' : '#64748b' }}>{item.status}</span></td>
+                                <td><span className={`days-badge ${item.is_red_flag ? 'red' : ''}`}>{item.days_open} Days {item.is_red_flag && '🔴'}</span></td>
+                                <td>{item.am_name || 'Unassigned'}</td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <button
+                                      onClick={() => {
+                                        setEditingDemand(item);
+                                        setDemandForm({
+                                          request_id: item.request_id || '',
+                                          external_requisition_id: item.external_requisition_id || '',
+                                          client_name: item.client_name || '',
+                                          skill_description: item.skill_description || '',
+                                          role_category: item.role_category || 'Permanent',
+                                          priority: item.priority || 'High',
+                                          status: item.status || 'Open',
+                                          experience_level: item.experience_level || '',
+                                          budget_min: item.budget_min ? item.budget_min.toString() : '',
+                                          budget_max: item.budget_max ? item.budget_max.toString() : '',
+                                          locations: Array.isArray(item.locations) ? item.locations.join(', ') : '',
+                                          num_positions: item.num_positions || 1,
+                                          am_name: item.am_name || '',
+                                          am_email: '',
+                                          notes: item.notes || ''
+                                        });
+                                        setShowEditDemandModal(true);
+                                      }}
+                                      style={{ padding: '4px 8px', border: '1px solid #cbd5e1', background: '#fff', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                    >
+                                      <i className="fa-solid fa-pen-to-square"></i> Edit
+                                    </button>
+                                    {deletingItem?.id === item.id ? (
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
+                                        <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: '700' }}>Confirm?</span>
+                                        <button onClick={() => handleDelete(item.id, 'demand')} style={{ border: 'none', background: '#dc2626', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '700' }}>Yes</button>
+                                        <button onClick={() => setDeletingItem(null)} style={{ border: 'none', background: '#94a3b8', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer' }}>No</button>
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => setDeletingItem({ id: item.id, type: 'demand' })}
+                                        title="Delete Demand"
+                                        style={{ padding: '4px 8px', border: '1px solid #fee2e2', background: '#fff5f5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                      >
+                                        <i className="fa-solid fa-trash-can"></i> Delete
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
                 </div>
               </div>
             </>
@@ -1273,76 +1273,76 @@ export default function SinglePageATSApp() {
                 </div>
                 <div className="card-body">
                   {loadingCandidates ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading candidate pipeline...</div>
-                  : candidates.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No candidates found matching search & filters.</div>
-                  : (
-                    <table className="data-table">
-                      <thead><tr><th>Candidate Name</th><th>Phone</th><th>Email</th><th>Current Company</th><th>Location</th><th>CTC (Current / Expected)</th><th>Source</th><th>Stage</th><th>Actions</th></tr></thead>
-                      <tbody>
-                        {candidates.map(c => (
-                          <tr key={c.id}>
-                            <td>
-                              <button
-                                onClick={() => openCandidateHistory(c.id)}
-                                title="Click to view Candidate 360 Profile & Full Application History"
-                                style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.85rem', textAlign: 'left' }}
-                              >
-                                <i className="fa-solid fa-user-tag" style={{ marginRight: '6px', fontSize: '0.75rem', color: '#3b82f6' }}></i>
-                                {c.full_name}
-                              </button>
-                            </td>
-                            <td>{c.phone}</td>
-                            <td>{c.email}</td>
-                            <td>{c.current_company || '—'}</td>
-                            <td>{c.current_location || '—'}</td>
-                            <td>{c.current_ctc ? `₹${c.current_ctc}L` : '—'} / {c.expected_ctc ? `₹${c.expected_ctc}L` : '—'}</td>
-                            <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#eff6ff', color: '#2563eb' }}>{c.source || 'naukri'}</span></td>
-                            <td>{renderStageTag(editCandidateStage)}</td>
-                            <td>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <button
-                                  onClick={() => {
-                                    setEditingCandidate(c);
-                                    setCandidateForm({
-                                      full_name: c.full_name || '',
-                                      phone: c.phone || '',
-                                      email: c.email || '',
-                                      current_company: c.current_company || '',
-                                      current_location: c.current_location || '',
-                                      current_ctc: c.current_ctc ? c.current_ctc.toString() : '',
-                                      expected_ctc: c.expected_ctc ? c.expected_ctc.toString() : '',
-                                      total_experience: '',
-                                      notice_period: 'Immediate',
-                                      skills: '',
-                                      source: c.source || 'naukri'
-                                    });
-                                    setShowEditCandidateModal(true);
-                                  }}
-                                  style={{ padding: '4px 8px', border: '1px solid #3b82f6', background: '#eff6ff', color: '#2563eb', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                >
-                                  <i className="fa-solid fa-user-pen"></i> Update
-                                </button>
-                                {deletingItem?.id === c.id ? (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
-                                    <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: '700' }}>Confirm?</span>
-                                    <button onClick={() => handleDelete(c.id, 'candidate')} style={{ border: 'none', background: '#dc2626', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '700' }}>Yes</button>
-                                    <button onClick={() => setDeletingItem(null)} style={{ border: 'none', background: '#94a3b8', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer' }}>No</button>
-                                  </span>
-                                ) : (
+                    : candidates.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No candidates found matching search & filters.</div>
+                      : (
+                        <table className="data-table">
+                          <thead><tr><th>Candidate Name</th><th>Phone</th><th>Email</th><th>Current Company</th><th>Location</th><th>CTC (Current / Expected)</th><th>Source</th><th>Stage</th><th>Actions</th></tr></thead>
+                          <tbody>
+                            {candidates.map(c => (
+                              <tr key={c.id}>
+                                <td>
                                   <button
-                                    onClick={() => setDeletingItem({ id: c.id, type: 'candidate' })}
-                                    title="Delete Candidate Profile"
-                                    style={{ padding: '4px 8px', border: '1px solid #fee2e2', background: '#fff5f5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                    onClick={() => openCandidateHistory(c.id)}
+                                    title="Click to view Candidate 360 Profile & Full Application History"
+                                    style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.85rem', textAlign: 'left' }}
                                   >
-                                    <i className="fa-solid fa-trash-can"></i> Delete
+                                    <i className="fa-solid fa-user-tag" style={{ marginRight: '6px', fontSize: '0.75rem', color: '#3b82f6' }}></i>
+                                    {c.full_name}
                                   </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
+                                </td>
+                                <td>{c.phone}</td>
+                                <td>{c.email}</td>
+                                <td>{c.current_company || '—'}</td>
+                                <td>{c.current_location || '—'}</td>
+                                <td>{c.current_ctc ? `₹${c.current_ctc}L` : '—'} / {c.expected_ctc ? `₹${c.expected_ctc}L` : '—'}</td>
+                                <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#eff6ff', color: '#2563eb' }}>{c.source || 'naukri'}</span></td>
+                                <td>{renderStageTag(editCandidateStage)}</td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <button
+                                      onClick={() => {
+                                        setEditingCandidate(c);
+                                        setCandidateForm({
+                                          full_name: c.full_name || '',
+                                          phone: c.phone || '',
+                                          email: c.email || '',
+                                          current_company: c.current_company || '',
+                                          current_location: c.current_location || '',
+                                          current_ctc: c.current_ctc ? c.current_ctc.toString() : '',
+                                          expected_ctc: c.expected_ctc ? c.expected_ctc.toString() : '',
+                                          total_experience: '',
+                                          notice_period: 'Immediate',
+                                          skills: '',
+                                          source: c.source || 'naukri'
+                                        });
+                                        setShowEditCandidateModal(true);
+                                      }}
+                                      style={{ padding: '4px 8px', border: '1px solid #3b82f6', background: '#eff6ff', color: '#2563eb', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                    >
+                                      <i className="fa-solid fa-user-pen"></i> Update
+                                    </button>
+                                    {deletingItem?.id === c.id ? (
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
+                                        <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: '700' }}>Confirm?</span>
+                                        <button onClick={() => handleDelete(c.id, 'candidate')} style={{ border: 'none', background: '#dc2626', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '700' }}>Yes</button>
+                                        <button onClick={() => setDeletingItem(null)} style={{ border: 'none', background: '#94a3b8', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer' }}>No</button>
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => setDeletingItem({ id: c.id, type: 'candidate' })}
+                                        title="Delete Candidate Profile"
+                                        style={{ padding: '4px 8px', border: '1px solid #fee2e2', background: '#fff5f5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                      >
+                                        <i className="fa-solid fa-trash-can"></i> Delete
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
                 </div>
               </div>
             </>
@@ -1388,57 +1388,57 @@ export default function SinglePageATSApp() {
                   </div>
                   <div className="card-body">
                     {loadingInterviews ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading interviews...</div>
-                    : interviews.length === 0 ? (
-                      <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
-                        <i className="fa-regular fa-calendar-check" style={{ fontSize: '2rem', marginBottom: '10px', display: 'block', color: '#cbd5e1' }}></i>
-                        No scheduled interviews found.
-                      </div>
-                    ) : (
-                      <table className="data-table">
-                        <thead><tr><th>Request ID</th><th>Candidate</th><th>Level</th><th>Skill Tested</th><th>Interviewer</th><th>Mode</th><th>Date & Time</th><th>Link Status</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody>
-                          {interviews.map(item => (
-                            <tr key={item.id}>
-                              <td>
-                                <button
-                                  onClick={() => openLifecycle(item.demand_request_id || 'CSF-2026-0001')}
-                                  title="Click to view full Requirement Lifecycle & Candidate History"
-                                  style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.83rem', textAlign: 'left' }}
-                                >
-                                  <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '4px', fontSize: '0.75rem' }}></i>
-                                  {item.demand_request_id || 'CSF-2026-0001'}
-                                </button>
-                              </td>
-                              <td className="font-medium">{item.candidate_name || 'Ankit Verma'}</td>
-                              <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#eff6ff', color: '#2563eb' }}>{item.level}</span></td>
-                              <td>{item.skill_tested}</td>
-                              <td className="font-medium">{item.interviewer_name}</td>
-                              <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#f0fdf4', color: '#16a34a' }}>{item.mode}</span></td>
-                              <td>{item.scheduled_date} {item.scheduled_time}</td>
-                              <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#eff6ff', color: '#2563eb' }}>{item.link_status || 'Client_Shared'}</span></td>
-                              <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#ecfdf5', color: '#10b981' }}>{item.status}</span></td>
-                              <td>
-                                {deletingItem?.id === item.id ? (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
-                                    <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: '700' }}>Confirm?</span>
-                                    <button onClick={() => handleDelete(item.id, 'interview')} style={{ border: 'none', background: '#dc2626', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '700' }}>Yes</button>
-                                    <button onClick={() => setDeletingItem(null)} style={{ border: 'none', background: '#94a3b8', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer' }}>No</button>
-                                  </span>
-                                ) : (
+                      : interviews.length === 0 ? (
+                        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                          <i className="fa-regular fa-calendar-check" style={{ fontSize: '2rem', marginBottom: '10px', display: 'block', color: '#cbd5e1' }}></i>
+                          No scheduled interviews found.
+                        </div>
+                      ) : (
+                        <table className="data-table">
+                          <thead><tr><th>Request ID</th><th>Candidate</th><th>Level</th><th>Skill Tested</th><th>Interviewer</th><th>Mode</th><th>Date & Time</th><th>Link Status</th><th>Status</th><th>Actions</th></tr></thead>
+                          <tbody>
+                            {interviews.map(item => (
+                              <tr key={item.id}>
+                                <td>
                                   <button
-                                    onClick={() => setDeletingItem({ id: item.id, type: 'interview' })}
-                                    title="Delete Scheduled Interview"
-                                    style={{ padding: '4px 8px', border: '1px solid #fee2e2', background: '#fff5f5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                    onClick={() => openLifecycle(item.demand_request_id || 'CSF-2026-0001')}
+                                    title="Click to view full Requirement Lifecycle & Candidate History"
+                                    style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.83rem', textAlign: 'left' }}
                                   >
-                                    <i className="fa-solid fa-trash-can"></i> Delete
+                                    <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '4px', fontSize: '0.75rem' }}></i>
+                                    {item.demand_request_id || 'CSF-2026-0001'}
                                   </button>
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
+                                </td>
+                                <td className="font-medium">{item.candidate_name || 'Ankit Verma'}</td>
+                                <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#eff6ff', color: '#2563eb' }}>{item.level}</span></td>
+                                <td>{item.skill_tested}</td>
+                                <td className="font-medium">{item.interviewer_name}</td>
+                                <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#f0fdf4', color: '#16a34a' }}>{item.mode}</span></td>
+                                <td>{item.scheduled_date} {item.scheduled_time}</td>
+                                <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#eff6ff', color: '#2563eb' }}>{item.link_status || 'Client_Shared'}</span></td>
+                                <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#ecfdf5', color: '#10b981' }}>{item.status}</span></td>
+                                <td>
+                                  {deletingItem?.id === item.id ? (
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
+                                      <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: '700' }}>Confirm?</span>
+                                      <button onClick={() => handleDelete(item.id, 'interview')} style={{ border: 'none', background: '#dc2626', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '700' }}>Yes</button>
+                                      <button onClick={() => setDeletingItem(null)} style={{ border: 'none', background: '#94a3b8', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer' }}>No</button>
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={() => setDeletingItem({ id: item.id, type: 'interview' })}
+                                      title="Delete Scheduled Interview"
+                                      style={{ padding: '4px 8px', border: '1px solid #fee2e2', background: '#fff5f5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                    >
+                                      <i className="fa-solid fa-trash-can"></i> Delete
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
                   </div>
                 </div>
               ) : (
@@ -1542,51 +1542,51 @@ export default function SinglePageATSApp() {
                     </div>
                     <div className="card-body">
                       {loadingOffers ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading offers...</div>
-                      : offers.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No offers found in database.</div>
-                      : (
-                        <table className="data-table">
-                          <thead><tr><th>Candidate</th><th>Demand</th><th>Offered CTC</th><th>Offer Date</th><th>Status</th><th>Actions</th></tr></thead>
-                          <tbody>
-                            {offers.map(o => (
-                              <tr key={o.id}>
-                                <td className="font-medium">{o.candidates?.full_name || '—'}</td>
-                                <td>
-                                  {o.demands?.request_id ? (
-                                    <button
-                                      onClick={() => openLifecycle(o.demands!.request_id)}
-                                      title="Click to view full Requirement Lifecycle & Candidate History"
-                                      style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.83rem', textAlign: 'left' }}
-                                    >
-                                      <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '4px', fontSize: '0.75rem' }}></i>
-                                      {o.demands.request_id}
-                                    </button>
-                                  ) : '—'} {o.demands?.skill_description ? `— ${o.demands.skill_description}` : ''}
-                                </td>
-                                <td>{o.offered_ctc ? `₹${o.offered_ctc}L` : '—'}</td>
-                                <td>{o.offer_date}</td>
-                                <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: o.status === 'Accepted' ? '#dcfce7' : o.status === 'Declined' ? '#fee2e2' : '#fef3c7', color: o.status === 'Accepted' ? '#166534' : o.status === 'Declined' ? '#dc2626' : '#92400e' }}>{o.status}</span></td>
-                                <td>
-                                  {deletingItem?.id === o.id ? (
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
-                                      <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: '700' }}>Confirm?</span>
-                                      <button onClick={() => handleDelete(o.id, 'offer')} style={{ border: 'none', background: '#dc2626', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '700' }}>Yes</button>
-                                      <button onClick={() => setDeletingItem(null)} style={{ border: 'none', background: '#94a3b8', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer' }}>No</button>
-                                    </span>
-                                  ) : (
-                                    <button
-                                      onClick={() => setDeletingItem({ id: o.id, type: 'offer' })}
-                                      title="Delete Offer Record"
-                                      style={{ padding: '4px 8px', border: '1px solid #fee2e2', background: '#fff5f5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                    >
-                                      <i className="fa-solid fa-trash-can"></i> Delete
-                                    </button>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
+                        : offers.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No offers found in database.</div>
+                          : (
+                            <table className="data-table">
+                              <thead><tr><th>Candidate</th><th>Demand</th><th>Offered CTC</th><th>Offer Date</th><th>Status</th><th>Actions</th></tr></thead>
+                              <tbody>
+                                {offers.map(o => (
+                                  <tr key={o.id}>
+                                    <td className="font-medium">{o.candidates?.full_name || '—'}</td>
+                                    <td>
+                                      {o.demands?.request_id ? (
+                                        <button
+                                          onClick={() => openLifecycle(o.demands!.request_id)}
+                                          title="Click to view full Requirement Lifecycle & Candidate History"
+                                          style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.83rem', textAlign: 'left' }}
+                                        >
+                                          <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '4px', fontSize: '0.75rem' }}></i>
+                                          {o.demands.request_id}
+                                        </button>
+                                      ) : '—'} {o.demands?.skill_description ? `— ${o.demands.skill_description}` : ''}
+                                    </td>
+                                    <td>{o.offered_ctc ? `₹${o.offered_ctc}L` : '—'}</td>
+                                    <td>{o.offer_date}</td>
+                                    <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: o.status === 'Accepted' ? '#dcfce7' : o.status === 'Declined' ? '#fee2e2' : '#fef3c7', color: o.status === 'Accepted' ? '#166534' : o.status === 'Declined' ? '#dc2626' : '#92400e' }}>{o.status}</span></td>
+                                    <td>
+                                      {deletingItem?.id === o.id ? (
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
+                                          <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: '700' }}>Confirm?</span>
+                                          <button onClick={() => handleDelete(o.id, 'offer')} style={{ border: 'none', background: '#dc2626', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '700' }}>Yes</button>
+                                          <button onClick={() => setDeletingItem(null)} style={{ border: 'none', background: '#94a3b8', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer' }}>No</button>
+                                        </span>
+                                      ) : (
+                                        <button
+                                          onClick={() => setDeletingItem({ id: o.id, type: 'offer' })}
+                                          title="Delete Offer Record"
+                                          style={{ padding: '4px 8px', border: '1px solid #fee2e2', background: '#fff5f5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                        >
+                                          <i className="fa-solid fa-trash-can"></i> Delete
+                                        </button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
                     </div>
                   </div>
                 </>
@@ -1607,37 +1607,37 @@ export default function SinglePageATSApp() {
                     </div>
                     <div className="card-body">
                       {loadingOnboardings ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>Loading onboardings...</div>
-                      : onboardings.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No onboarding records found.</div>
-                      : (
-                        <table className="data-table">
-                          <thead><tr><th>Candidate</th><th>Demand</th><th>BGV Status</th><th>Joining Date</th><th>Onboarding Status</th></tr></thead>
-                          <tbody>
-                            {onboardings.map(ob => {
-                              const bgvColor = BGV_COLORS[ob.bgv_status] || BGV_COLORS['in_progress'];
-                              return (
-                                <tr key={ob.id}>
-                                  <td className="font-medium">{ob.candidates?.full_name || '—'}</td>
-                                  <td>
-                                    {ob.demands?.request_id ? (
-                                      <button
-                                        onClick={() => openLifecycle(ob.demands!.request_id)}
-                                        title="Click to view full Requirement Lifecycle & Candidate History"
-                                        style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.83rem', textAlign: 'left' }}
-                                      >
-                                        <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '4px', fontSize: '0.75rem' }}></i>
-                                        {ob.demands.request_id}
-                                      </button>
-                                    ) : '—'} {ob.demands?.skill_description ? `— ${ob.demands.skill_description}` : ''}
-                                  </td>
-                                  <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: bgvColor.bg, color: bgvColor.text }}>{ob.bgv_status.toUpperCase()}</span></td>
-                                  <td>{ob.actual_joining_date || 'TBD'}</td>
-                                  <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: ob.status === 'onboarded' ? '#dcfce7' : '#fef3c7', color: ob.status === 'onboarded' ? '#166534' : '#92400e' }}>{ob.status}</span></td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
+                        : onboardings.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No onboarding records found.</div>
+                          : (
+                            <table className="data-table">
+                              <thead><tr><th>Candidate</th><th>Demand</th><th>BGV Status</th><th>Joining Date</th><th>Onboarding Status</th></tr></thead>
+                              <tbody>
+                                {onboardings.map(ob => {
+                                  const bgvColor = BGV_COLORS[ob.bgv_status] || BGV_COLORS['in_progress'];
+                                  return (
+                                    <tr key={ob.id}>
+                                      <td className="font-medium">{ob.candidates?.full_name || '—'}</td>
+                                      <td>
+                                        {ob.demands?.request_id ? (
+                                          <button
+                                            onClick={() => openLifecycle(ob.demands!.request_id)}
+                                            title="Click to view full Requirement Lifecycle & Candidate History"
+                                            style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.83rem', textAlign: 'left' }}
+                                          >
+                                            <i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '4px', fontSize: '0.75rem' }}></i>
+                                            {ob.demands.request_id}
+                                          </button>
+                                        ) : '—'} {ob.demands?.skill_description ? `— ${ob.demands.skill_description}` : ''}
+                                      </td>
+                                      <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: bgvColor.bg, color: bgvColor.text }}>{ob.bgv_status.toUpperCase()}</span></td>
+                                      <td>{ob.actual_joining_date || 'TBD'}</td>
+                                      <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: ob.status === 'onboarded' ? '#dcfce7' : '#fef3c7', color: ob.status === 'onboarded' ? '#166534' : '#92400e' }}>{ob.status}</span></td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          )}
                     </div>
                   </div>
                 </>
@@ -2768,7 +2768,7 @@ export default function SinglePageATSApp() {
                     onClick={() => openAssignModal(lifecycleDrawer.data.demand.id, lifecycleDrawer.requestId!)}
                     style={{ padding: '8px 16px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
-                    <i className="fa-solid fa-user-plus"></i> + Assign Candidates (Batch Select 20-30)
+                    <i className="fa-solid fa-user-plus"></i> + Assign Candidates
                   </button>
                 )}
                 <button
@@ -2869,7 +2869,7 @@ export default function SinglePageATSApp() {
                             onClick={() => openAssignModal(lifecycleDrawer.data.demand.id, lifecycleDrawer.requestId!)}
                             style={{ marginTop: '10px', padding: '6px 14px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}
                           >
-                            Assign 20-30 Candidates Now
+                            Assign Candidates
                           </button>
                         </div>
                       ) : (
@@ -3363,201 +3363,7 @@ export default function SinglePageATSApp() {
       )}
 
       {/* ═══════════════ LIFECYCLE DRAWER ═══════════════ */}
-      {lifecycleDrawer.open && (
-        <div
-          onClick={() => setLifecycleDrawer({ ...lifecycleDrawer, open: false })}
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15,23,42,0.55)', zIndex: 9999, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(3px)' }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ width: '540px', maxWidth: '95vw', height: '100vh', backgroundColor: '#fff', boxShadow: '-8px 0 32px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', overflowY: 'auto', animation: 'slideInRight 0.3s ease-out' }}
-          >
-            {/* Drawer Header */}
-            <div style={{ padding: '20px 24px', borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 2 }}>
-              <div>
-                <span style={{ fontSize: '0.72rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#64748b' }}>Requirement Lifecycle</span>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', margin: '2px 0 0' }}>
-                  <i className="fa-solid fa-clock-rotate-left" style={{ color: '#2563eb', marginRight: '8px' }}></i>
-                  {lifecycleDrawer.requestId}
-                </h2>
-              </div>
-              <button
-                onClick={() => setLifecycleDrawer({ ...lifecycleDrawer, open: false })}
-                style={{ width: '36px', height: '36px', borderRadius: '50%', border: '1px solid #e2e8f0', background: '#fff', cursor: 'pointer', fontSize: '1rem', fontWeight: '700', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                X
-              </button>
-            </div>
 
-            {/* Drawer Body */}
-            <div style={{ flex: 1, padding: '20px 24px', overflowY: 'auto' }}>
-              {lifecycleDrawer.loading ? (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: '#64748b' }}>
-                  <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '2rem', marginBottom: '12px', display: 'block' }}></i>
-                  <p style={{ fontSize: '0.9rem' }}>Loading lifecycle data...</p>
-                </div>
-              ) : !lifecycleDrawer.data ? (
-                <div style={{ textAlign: 'center', padding: '60px 0', color: '#94a3b8' }}>
-                  <i className="fa-solid fa-circle-exclamation" style={{ fontSize: '2rem', marginBottom: '12px', display: 'block' }}></i>
-                  <p style={{ fontSize: '0.9rem' }}>Failed to load lifecycle data for this requirement.</p>
-                </div>
-              ) : (
-                <>
-                  {/* ── SECTION 1: DEMAND DETAILS ── */}
-                  <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <i className="fa-solid fa-file-lines"></i> Demand Details
-                      </span>
-                      <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: '700', backgroundColor: lifecycleDrawer.data.demand?.status === 'Open' ? '#dcfce7' : '#f1f5f9', color: lifecycleDrawer.data.demand?.status === 'Open' ? '#16a34a' : '#64748b' }}>
-                        {lifecycleDrawer.data.demand?.status || 'Unknown'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.82rem', color: '#334155' }}>
-                      <div><strong>Client:</strong> {lifecycleDrawer.data.demand?.client_name || '---'}</div>
-                      <div><strong>AM:</strong> {lifecycleDrawer.data.demand?.am_name || '---'}</div>
-                      <div><strong>Skill:</strong> {lifecycleDrawer.data.demand?.skill_description || '---'}</div>
-                      <div><strong>Priority:</strong> <span style={{ padding: '1px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '700', backgroundColor: lifecycleDrawer.data.demand?.priority === 'High' ? '#fef2f2' : '#f1f5f9', color: lifecycleDrawer.data.demand?.priority === 'High' ? '#dc2626' : '#64748b' }}>{lifecycleDrawer.data.demand?.priority || '---'}</span></div>
-                      <div><strong>Type:</strong> {lifecycleDrawer.data.demand?.role_category || 'Permanent'}</div>
-                      <div><strong>Days Open:</strong> {lifecycleDrawer.data.demand?.days_open ?? '---'}</div>
-                      <div><strong>Positions:</strong> {lifecycleDrawer.data.demand?.num_positions || 1}</div>
-                      <div><strong>Experience:</strong> {lifecycleDrawer.data.demand?.experience_level || '---'}</div>
-                      {lifecycleDrawer.data.demand?.budget_min && (
-                        <div><strong>Budget:</strong> {lifecycleDrawer.data.demand?.budget_min} - {lifecycleDrawer.data.demand?.budget_max} LPA</div>
-                      )}
-                      {lifecycleDrawer.data.demand?.locations && lifecycleDrawer.data.demand.locations.length > 0 && (
-                        <div><strong>Locations:</strong> {Array.isArray(lifecycleDrawer.data.demand.locations) ? lifecycleDrawer.data.demand.locations.join(', ') : lifecycleDrawer.data.demand.locations}</div>
-                      )}
-                    </div>
-                    {lifecycleDrawer.data.demand?.notes && (
-                      <div style={{ marginTop: '10px', padding: '8px 10px', backgroundColor: '#e0f2fe', borderRadius: '6px', fontSize: '0.8rem', color: '#0369a1' }}>
-                        <strong>Notes:</strong> {lifecycleDrawer.data.demand.notes}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ── SECTION 2: INTERVIEWS TIMELINE ── */}
-                  <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <i className="fa-solid fa-comments"></i> Interviews
-                      </span>
-                      <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: '700', backgroundColor: '#ede9fe', color: '#6d28d9' }}>
-                        {lifecycleDrawer.data.interviews?.length || 0} Round(s)
-                      </span>
-                    </div>
-
-                    {!lifecycleDrawer.data.interviews || lifecycleDrawer.data.interviews.length === 0 ? (
-                      <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No interviews scheduled for this requirement yet.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {lifecycleDrawer.data.interviews.map((iv: any, idx: number) => {
-                          const statusColor = iv.status === 'Completed' ? '#16a34a' : iv.status === 'Scheduled' ? '#2563eb' : iv.status?.includes('No-Show') ? '#dc2626' : '#64748b';
-                          return (
-                            <div key={idx} style={{ padding: '10px 12px', border: '1px solid #e9d5ff', backgroundColor: '#fefbff', borderRadius: '8px', fontSize: '0.82rem', position: 'relative', borderLeft: `4px solid ${statusColor}` }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: '#5b21b6' }}>
-                                <span>[{iv.level}] {iv.candidate_name || 'Candidate'}</span>
-                                <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '700', backgroundColor: statusColor + '15', color: statusColor }}>{iv.status}</span>
-                              </div>
-                              <div style={{ marginTop: '4px', color: '#7c3aed', fontSize: '0.78rem' }}>
-                                Date: <strong>{iv.scheduled_date || '---'}</strong> | Time: {iv.scheduled_time || '---'} | Mode: {iv.mode || '---'}
-                              </div>
-                              <div style={{ marginTop: '2px', color: '#7c3aed', fontSize: '0.78rem' }}>
-                                Interviewer: {iv.interviewer_name || '---'} | Skill: {iv.skill_tested || '---'}
-                              </div>
-                              {iv.feedback && (
-                                <div style={{ marginTop: '6px', padding: '6px 8px', backgroundColor: '#ede9fe', borderRadius: '4px', fontSize: '0.78rem', color: '#5b21b6' }}>
-                                  <strong>Feedback:</strong> {iv.feedback}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ── SECTION 3: OFFERS ── */}
-                  <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#d97706', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <i className="fa-solid fa-handshake"></i> Offers
-                      </span>
-                      <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: '700', backgroundColor: '#fef3c7', color: '#b45309' }}>
-                        {lifecycleDrawer.data.offers?.length || 0} Offer(s)
-                      </span>
-                    </div>
-
-                    {!lifecycleDrawer.data.offers || lifecycleDrawer.data.offers.length === 0 ? (
-                      <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No offers extended for this requirement yet.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {lifecycleDrawer.data.offers.map((off: any, idx: number) => (
-                          <div key={idx} style={{ padding: '10px 12px', border: '1px solid #fde68a', backgroundColor: '#fffef5', borderRadius: '8px', fontSize: '0.82rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: '#92400e' }}>
-                              <span>{off.candidates?.full_name || 'Candidate'}</span>
-                              <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '700', backgroundColor: off.status === 'Accepted' ? '#dcfce7' : off.status === 'Rejected' ? '#fee2e2' : '#fef3c7', color: off.status === 'Accepted' ? '#16a34a' : off.status === 'Rejected' ? '#dc2626' : '#b45309' }}>{off.status}</span>
-                            </div>
-                            <div style={{ marginTop: '4px', color: '#b45309', fontSize: '0.78rem' }}>
-                              CTC: <strong>{off.offered_ctc ? `${off.offered_ctc} LPA` : '---'}</strong> | Offer Date: <strong>{off.offer_date || '---'}</strong>
-                            </div>
-                            {off.notes && (
-                              <div style={{ marginTop: '4px', fontSize: '0.78rem', color: '#92400e' }}>Notes: {off.notes}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ── SECTION 4: ONBOARDING ── */}
-                  <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <i className="fa-solid fa-flag-checkered"></i> Onboarding
-                      </span>
-                      <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.72rem', fontWeight: '700', backgroundColor: '#d1fae5', color: '#047857' }}>
-                        {lifecycleDrawer.data.onboardings?.length || 0} Record(s)
-                      </span>
-                    </div>
-
-                    {!lifecycleDrawer.data.onboardings || lifecycleDrawer.data.onboardings.length === 0 ? (
-                      <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No onboarding records for this requirement yet.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {lifecycleDrawer.data.onboardings.map((ob: any, idx: number) => (
-                          <div key={idx} style={{ padding: '10px 12px', border: '1px solid #a7f3d0', backgroundColor: '#f0fdf9', borderRadius: '8px', fontSize: '0.82rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: '#065f46' }}>
-                              <span>{ob.candidates?.full_name || 'Candidate'}</span>
-                              <span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '700', backgroundColor: ob.status === 'Joined' ? '#dcfce7' : '#fef3c7', color: ob.status === 'Joined' ? '#16a34a' : '#b45309' }}>{ob.status}</span>
-                            </div>
-                            <div style={{ marginTop: '4px', color: '#047857', fontSize: '0.78rem' }}>
-                              BGV: <strong>{ob.bgv_status?.toUpperCase() || '---'}</strong> | Joining Date: <strong>{ob.actual_joining_date || 'TBD'}</strong>
-                            </div>
-                            {ob.notes && (
-                              <div style={{ marginTop: '4px', fontSize: '0.78rem', color: '#065f46' }}>Notes: {ob.notes}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Drawer Footer */}
-            <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'flex-end', position: 'sticky', bottom: 0 }}>
-              <button
-                onClick={() => setLifecycleDrawer({ ...lifecycleDrawer, open: false })}
-                style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
-              >
-                Close Lifecycle View
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );
