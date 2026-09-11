@@ -419,6 +419,78 @@ export default function SinglePageATSApp() {
     loading: boolean;
   }>({ open: false, requestId: null, data: null, loading: false });
 
+  // Candidate Batch Assignment Modal State
+  const [assignModal, setAssignModal] = useState<{
+    open: boolean;
+    demandId: string | null;
+    requestId: string | null;
+    search: string;
+    selectedCids: string[];
+    loading: boolean;
+    repoCandidates: any[];
+    submitting: boolean;
+  }>({ open: false, demandId: null, requestId: null, search: '', selectedCids: [], loading: false, repoCandidates: [], submitting: false });
+
+  const openAssignModal = async (demandId: string, requestId: string) => {
+    setAssignModal({ open: true, demandId, requestId, search: '', selectedCids: [], loading: true, repoCandidates: [], submitting: false });
+    try {
+      const res = await fetch('/api/candidates');
+      if (res.ok) {
+        const json = await res.json();
+        setAssignModal(prev => ({ ...prev, loading: false, repoCandidates: json.candidates || [] }));
+      } else {
+        setAssignModal(prev => ({ ...prev, loading: false }));
+      }
+    } catch (e) {
+      console.error('Error fetching repo candidates:', e);
+      setAssignModal(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleBatchAssignCandidates = async () => {
+    if (!assignModal.demandId || assignModal.selectedCids.length === 0) return;
+    setAssignModal(prev => ({ ...prev, submitting: true }));
+    try {
+      const res = await fetch('/api/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          demand_id: assignModal.demandId,
+          candidate_ids: assignModal.selectedCids,
+          stage: 'phone_call_done'
+        })
+      });
+      if (res.ok) {
+        setAssignModal({ open: false, demandId: null, requestId: null, search: '', selectedCids: [], loading: false, repoCandidates: [], submitting: false });
+        if (lifecycleDrawer.requestId) {
+          openLifecycle(lifecycleDrawer.requestId);
+        }
+      } else {
+        alert('Failed to assign candidates. Please try again.');
+        setAssignModal(prev => ({ ...prev, submitting: false }));
+      }
+    } catch (e) {
+      console.error('Error batch assigning candidates:', e);
+      alert('Failed to assign candidates.');
+      setAssignModal(prev => ({ ...prev, submitting: false }));
+    }
+  };
+
+  const handleUpdateSubmissionStage = async (submissionId: string, newStage: string) => {
+    try {
+      const res = await fetch('/api/submissions', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: submissionId, stage: newStage })
+      });
+      if (res.ok && lifecycleDrawer.requestId) {
+        openLifecycle(lifecycleDrawer.requestId);
+      }
+    } catch (e) {
+      console.error('Error updating candidate stage:', e);
+    }
+  };
+
   const [deletingItem, setDeletingItem] = useState<{
     id: string;
     type: 'demand' | 'candidate' | 'interview' | 'offer';
@@ -2663,172 +2735,413 @@ export default function SinglePageATSApp() {
         </div>
       )}
 
-      {/* REQ LIFECYCLE & CANDIDATE HISTORY DRAWER */}
+      {/* REQ LIFECYCLE & CANDIDATE HISTORY FULL-SCREEN WORKSPACE */}
       {lifecycleDrawer.open && (
         <div
           onClick={() => setLifecycleDrawer({ ...lifecycleDrawer, open: false })}
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', zIndex: 2000, backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', zIndex: 2000, backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: '560px', maxWidth: '90vw', height: '100%', backgroundColor: '#fff', boxShadow: '-10px 0 30px rgba(0,0,0,0.25)',
-              display: 'flex', flexDirection: 'column'
+              width: '96vw', height: '92vh', maxWidth: '1600px', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden'
             }}
           >
-            {/* Drawer Header */}
-            <div style={{ padding: '20px 24px', backgroundColor: '#0f172a', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Header */}
+            <div style={{ padding: '16px 24px', backgroundColor: '#0f172a', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e293b' }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <i className="fa-solid fa-clock-rotate-left" style={{ color: '#38bdf8' }}></i>
-                  <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#f8fafc' }}>Req Lifecycle & Candidate History</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <i className="fa-solid fa-layer-group" style={{ color: '#38bdf8', fontSize: '1.2rem' }}></i>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#f8fafc', margin: 0 }}>Requirement Full Lifecycle Workspace</h2>
+                  <span style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '2px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700' }}>
+                    {lifecycleDrawer.requestId}
+                  </span>
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>Request ID: <span style={{ color: '#38bdf8', fontWeight: '700' }}>{lifecycleDrawer.requestId}</span></div>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>
+                  Mandate Tracking & Candidate Stage Progression
+                </div>
               </div>
-              <button
-                onClick={() => setLifecycleDrawer({ ...lifecycleDrawer, open: false })}
-                style={{ border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                ✕
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {lifecycleDrawer.data?.demand && (
+                  <button
+                    onClick={() => openAssignModal(lifecycleDrawer.data.demand.id, lifecycleDrawer.requestId!)}
+                    style={{ padding: '8px 16px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <i className="fa-solid fa-user-plus"></i> + Assign Candidates (Batch Select 20-30)
+                  </button>
+                )}
+                <button
+                  onClick={() => setLifecycleDrawer({ ...lifecycleDrawer, open: false })}
+                  style={{ border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '50%', width: '34px', height: '34px', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
-            {/* Drawer Body */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Workspace Body */}
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
               {lifecycleDrawer.loading ? (
-                <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
-                  <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '2rem', marginBottom: '12px', color: '#2563eb' }}></i>
-                  <p style={{ fontWeight: '600' }}>Fetching Requirement Lifecycle History...</p>
+                <div style={{ flex: 1, padding: '60px', textAlign: 'center', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '2.5rem', marginBottom: '16px', color: '#2563eb' }}></i>
+                  <p style={{ fontWeight: '600', fontSize: '1.1rem' }}>Fetching Full Requirement Lifecycle Data...</p>
                 </div>
               ) : !lifecycleDrawer.data?.demand ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>
-                  <i className="fa-solid fa-circle-exclamation" style={{ fontSize: '2rem', marginBottom: '10px' }}></i>
-                  <p>Could not load lifecycle for Request ID {lifecycleDrawer.requestId}</p>
+                <div style={{ flex: 1, padding: '40px', textAlign: 'center', color: '#dc2626', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="fa-solid fa-circle-exclamation" style={{ fontSize: '2.5rem', marginBottom: '12px' }}></i>
+                  <p style={{ fontSize: '1rem', fontWeight: '600' }}>Could not load lifecycle for Request ID {lifecycleDrawer.requestId}</p>
                 </div>
               ) : (
                 <>
-                  {/* Step 1: Requirement Summary Card */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#f8fafc' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#2563eb' }}>1. Requirement Overview</span>
-                      <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700', backgroundColor: lifecycleDrawer.data.demand.status === 'Open' ? '#dcfce7' : '#f1f5f9', color: lifecycleDrawer.data.demand.status === 'Open' ? '#166534' : '#475569' }}>
-                        {lifecycleDrawer.data.demand.status}
-                      </span>
+                  {/* Left Overview Panel */}
+                  <div style={{ width: '340px', minWidth: '320px', backgroundColor: '#f8fafc', borderRight: '1px solid #e2e8f0', padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#2563eb' }}>Req Overview</span>
+                        <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700', backgroundColor: lifecycleDrawer.data.demand.status === 'Open' ? '#dcfce7' : '#f1f5f9', color: lifecycleDrawer.data.demand.status === 'Open' ? '#166534' : '#475569' }}>
+                          {lifecycleDrawer.data.demand.status}
+                        </span>
+                      </div>
+                      <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#0f172a', marginBottom: '12px', lineHeight: '1.4' }}>{lifecycleDrawer.data.demand.skill_description}</h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem', color: '#334155' }}>
+                        <div><strong>Client Name:</strong> <span style={{ color: '#0369a1', fontWeight: '700' }}>{lifecycleDrawer.data.demand.client_name || lifecycleDrawer.data.demand.account_name || 'Costaff Client'}</span></div>
+                        <div><strong>Account Manager:</strong> <span style={{ color: '#4338ca', fontWeight: '700' }}>{lifecycleDrawer.data.demand.am_name || 'Unassigned'}</span></div>
+                        <div><strong>Role Category:</strong> {lifecycleDrawer.data.demand.role_category || 'Permanent'}</div>
+                        <div><strong>Priority:</strong> <span className={`priority-tag ${lifecycleDrawer.data.demand.priority === 'High' ? 'high' : ''}`}>{lifecycleDrawer.data.demand.priority}</span></div>
+                        <div><strong>Days Open:</strong> {lifecycleDrawer.data.demand.days_open || 0} Days</div>
+                        <div><strong>Experience Level:</strong> {lifecycleDrawer.data.demand.experience_level || 'N/A'}</div>
+                        <div><strong>Positions:</strong> {lifecycleDrawer.data.demand.num_positions || 1}</div>
+                        <div><strong>Budget Range:</strong> {lifecycleDrawer.data.demand.budget_min ? `₹${lifecycleDrawer.data.demand.budget_min} - ₹${lifecycleDrawer.data.demand.budget_max} LPA` : 'N/A'}</div>
+                        <div><strong>Locations:</strong> {Array.isArray(lifecycleDrawer.data.demand.locations) ? lifecycleDrawer.data.demand.locations.join(', ') : 'N/A'}</div>
+                      </div>
                     </div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: '700', color: '#0f172a', marginBottom: '6px' }}>{lifecycleDrawer.data.demand.skill_description}</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.8rem', color: '#475569', marginTop: '10px' }}>
-                      <div><strong>Client:</strong> {lifecycleDrawer.data.demand.client_name || 'Costaff Client'}</div>
-                      <div><strong>Account Manager:</strong> {lifecycleDrawer.data.demand.am_name || 'Unassigned'}</div>
-                      <div><strong>Role Category:</strong> {lifecycleDrawer.data.demand.role_category || 'Permanent'}</div>
-                      <div><strong>Priority:</strong> <span className={`priority-tag ${lifecycleDrawer.data.demand.priority === 'High' ? 'high' : ''}`}>{lifecycleDrawer.data.demand.priority}</span></div>
-                      <div><strong>Days Open:</strong> {lifecycleDrawer.data.demand.days_open || 0} Days</div>
-                      <div><strong>Experience:</strong> {lifecycleDrawer.data.demand.experience_level || 'N/A'}</div>
+
+                    {/* Pipeline Quick Stats */}
+                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#475569', marginBottom: '12px' }}>Pipeline Summary</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div style={{ backgroundColor: '#eff6ff', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#1d4ed8' }}>{lifecycleDrawer.data.submissions?.length || 0}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#3b82f6', fontWeight: '600' }}>Assigned Candidates</div>
+                        </div>
+                        <div style={{ backgroundColor: '#f3e8ff', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#6b21a8' }}>{lifecycleDrawer.data.interviews?.length || 0}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#9333ea', fontWeight: '600' }}>Interviews Logged</div>
+                        </div>
+                        <div style={{ backgroundColor: '#ecfdf5', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#047857' }}>{lifecycleDrawer.data.offers?.length || 0}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '600' }}>Offers Issued</div>
+                        </div>
+                        <div style={{ backgroundColor: '#e0f2fe', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#0369a1' }}>{lifecycleDrawer.data.onboardings?.length || 0}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: '600' }}>Onboarded</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Step 2: Interviews & Candidates Submitted */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7c3aed' }}>
-                        2. Interview Rounds & Candidates ({lifecycleDrawer.data.interviews?.length || 0})
-                      </span>
+                  {/* Right Pipeline & Stage Area */}
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Section 1: Assigned Candidates & Selection Stage Progression */}
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px', backgroundColor: '#fff' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#0f172a', margin: 0 }}>
+                            <i className="fa-solid fa-users" style={{ color: '#2563eb', marginRight: '6px' }}></i>
+                            1. Assigned Candidates & Selection Stages ({lifecycleDrawer.data.submissions?.length || 0})
+                          </h4>
+                          <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>Track candidate stage progression from Phone Call to Final Selection</div>
+                        </div>
+                        <button
+                          onClick={() => openAssignModal(lifecycleDrawer.data.demand.id, lifecycleDrawer.requestId!)}
+                          style={{ padding: '6px 12px', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
+                        >
+                          + Assign Candidates
+                        </button>
+                      </div>
+
+                      {!lifecycleDrawer.data.submissions || lifecycleDrawer.data.submissions.length === 0 ? (
+                        <div style={{ padding: '30px', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                          <i className="fa-solid fa-user-slash" style={{ fontSize: '1.8rem', color: '#94a3b8', marginBottom: '8px' }}></i>
+                          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>No candidates assigned to this requisition yet.</p>
+                          <button
+                            onClick={() => openAssignModal(lifecycleDrawer.data.demand.id, lifecycleDrawer.requestId!)}
+                            style={{ marginTop: '10px', padding: '6px 14px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: '600' }}
+                          >
+                            Assign 20-30 Candidates Now
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
+                                <th style={{ padding: '10px' }}>Candidate Name</th>
+                                <th style={{ padding: '10px' }}>Contact Details</th>
+                                <th style={{ padding: '10px' }}>Current CTC / Exp</th>
+                                <th style={{ padding: '10px' }}>Current Stage</th>
+                                <th style={{ padding: '10px', textAlign: 'right' }}>Stage Action</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {lifecycleDrawer.data.submissions.map((sub: any, idx: number) => {
+                                const cand = sub.candidates || {};
+                                return (
+                                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <td style={{ padding: '10px', fontWeight: '700', color: '#0f172a' }}>
+                                      {cand.full_name || 'Candidate'}
+                                      {cand.current_location && <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: '400' }}>📍 {cand.current_location}</div>}
+                                    </td>
+                                    <td style={{ padding: '10px', color: '#475569' }}>
+                                      <div>{cand.email || 'N/A'}</div>
+                                      <div style={{ fontSize: '0.76rem', color: '#64748b' }}>{cand.phone || 'N/A'}</div>
+                                    </td>
+                                    <td style={{ padding: '10px', color: '#475569' }}>
+                                      <div>{cand.current_ctc ? `₹${cand.current_ctc} LPA` : 'N/A'}</div>
+                                      <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Avail: {cand.availability || 'Immediate'}</div>
+                                    </td>
+                                    <td style={{ padding: '10px' }}>
+                                      <span style={{
+                                        padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700',
+                                        backgroundColor: sub.stage === 'joined' ? '#dcfce7' : sub.stage === 'offer_issued' ? '#dbeafe' : sub.stage === 'rejected' ? '#fee2e2' : '#fef3c7',
+                                        color: sub.stage === 'joined' ? '#166534' : sub.stage === 'offer_issued' ? '#1e40af' : sub.stage === 'rejected' ? '#991b1b' : '#92400e'
+                                      }}>
+                                        {sub.stage?.replace(/_/g, ' ')?.toUpperCase() || 'PHONE CALL DONE'}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '10px', textAlign: 'right' }}>
+                                      <select
+                                        value={sub.stage || 'phone_call_done'}
+                                        onChange={(e) => handleUpdateSubmissionStage(sub.id, e.target.value)}
+                                        style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', backgroundColor: '#fff', cursor: 'pointer', fontWeight: '600' }}
+                                      >
+                                        <option value="phone_call_done">📞 Phone Call Done</option>
+                                        <option value="l1_scheduled">🗓️ L1 Interview Scheduled</option>
+                                        <option value="l1_passed">✅ L1 Round Passed</option>
+                                        <option value="l2_passed">✅ L2 Round Passed</option>
+                                        <option value="client_round_passed">🎯 Client Round Passed</option>
+                                        <option value="offer_issued">📄 Offer Issued</option>
+                                        <option value="joined">🎉 Joined / Onboarded</option>
+                                        <option value="rejected">❌ Rejected / Dropped</option>
+                                      </select>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
                     </div>
 
-                    {!lifecycleDrawer.data.interviews || lifecycleDrawer.data.interviews.length === 0 ? (
-                      <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No interview rounds logged yet for this mandate.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {lifecycleDrawer.data.interviews.map((iv: any, idx: number) => {
-                          const st = getInterviewStatusStyle(iv.status);
-                          return (
-                            <div key={idx} style={{ padding: '10px 12px', borderLeft: `4px solid ${st.dot}`, backgroundColor: st.bg, borderRadius: '0 8px 8px 0', fontSize: '0.82rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: st.text }}>
-                                <span>{iv.level} • {iv.candidate_name || 'Candidate'}</span>
-                                <span>{st.label}</span>
-                              </div>
-                              <div style={{ marginTop: '4px', color: '#475569', fontSize: '0.78rem' }}>
-                                <span><strong>Interviewer:</strong> {iv.interviewer_name}</span> | <span><strong>Skill:</strong> {iv.skill_tested}</span>
-                              </div>
-                              <div style={{ marginTop: '2px', color: '#64748b', fontSize: '0.75rem' }}>
-                                <i className="fa-regular fa-calendar" style={{ marginRight: '4px' }}></i>{iv.scheduled_date} at {iv.scheduled_time} ({iv.mode})
-                              </div>
-                              {iv.feedback && (
-                                <div style={{ marginTop: '6px', fontStyle: 'italic', background: '#fff', padding: '6px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#334155' }}>
-                                  <i className="fa-regular fa-comment" style={{ marginRight: '4px' }}></i>{iv.feedback}
+                    {/* Section 2: Interview Rounds & Feedback */}
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px', backgroundColor: '#fff' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#7c3aed', margin: 0 }}>
+                          <i className="fa-solid fa-calendar-check" style={{ marginRight: '6px' }}></i>
+                          2. Interview Logs & Feedback ({lifecycleDrawer.data.interviews?.length || 0})
+                        </h4>
+                      </div>
+
+                      {!lifecycleDrawer.data.interviews || lifecycleDrawer.data.interviews.length === 0 ? (
+                        <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No interview rounds logged yet for this mandate.</p>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          {lifecycleDrawer.data.interviews.map((iv: any, idx: number) => {
+                            const st = getInterviewStatusStyle(iv.status);
+                            return (
+                              <div key={idx} style={{ padding: '10px 12px', borderLeft: `4px solid ${st.dot}`, backgroundColor: st.bg, borderRadius: '0 8px 8px 0', fontSize: '0.82rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: st.text }}>
+                                  <span>{iv.level} • {iv.candidate_name || 'Candidate'}</span>
+                                  <span>{st.label}</span>
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Step 3: Offers Issued */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#059669' }}>
-                        3. Offers ({lifecycleDrawer.data.offers?.length || 0})
-                      </span>
+                                <div style={{ marginTop: '4px', color: '#475569', fontSize: '0.78rem' }}>
+                                  <span><strong>Interviewer:</strong> {iv.interviewer_name}</span> | <span><strong>Skill:</strong> {iv.skill_tested}</span>
+                                </div>
+                                <div style={{ marginTop: '2px', color: '#64748b', fontSize: '0.75rem' }}>
+                                  <i className="fa-regular fa-calendar" style={{ marginRight: '4px' }}></i>{iv.scheduled_date} at {iv.scheduled_time} ({iv.mode})
+                                </div>
+                                {iv.feedback && (
+                                  <div style={{ marginTop: '6px', fontStyle: 'italic', background: '#fff', padding: '6px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#334155' }}>
+                                    <i className="fa-regular fa-comment" style={{ marginRight: '4px' }}></i>{iv.feedback}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
 
-                    {!lifecycleDrawer.data.offers || lifecycleDrawer.data.offers.length === 0 ? (
-                      <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No offers issued for this demand yet.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {lifecycleDrawer.data.offers.map((off: any, idx: number) => (
-                          <div key={idx} style={{ padding: '10px 12px', border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4', borderRadius: '8px', fontSize: '0.82rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: '#166534' }}>
-                              <span>Candidate: {off.candidates?.full_name || 'Candidate'}</span>
-                              <span>Status: {off.status}</span>
-                            </div>
-                            <div style={{ marginTop: '4px', color: '#15803d', fontSize: '0.78rem' }}>
-                              Offered CTC: <strong>₹{off.offered_ctc} LPA</strong> | Offer Date: {off.offer_date}
-                            </div>
+                    {/* Section 3 & 4: Offers & Onboardings */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      {/* Offers */}
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#059669', marginBottom: '10px' }}>
+                          3. Offers ({lifecycleDrawer.data.offers?.length || 0})
+                        </h4>
+                        {!lifecycleDrawer.data.offers || lifecycleDrawer.data.offers.length === 0 ? (
+                          <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No offers issued yet.</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {lifecycleDrawer.data.offers.map((off: any, idx: number) => (
+                              <div key={idx} style={{ padding: '8px 10px', border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                <div style={{ fontWeight: '700', color: '#166534' }}>{off.candidates?.full_name || 'Candidate'}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#15803d', marginTop: '2px' }}>₹{off.offered_ctc} LPA | Offer Date: {off.offer_date}</div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Step 4: Onboarding Status */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#0284c7' }}>
-                        4. Onboarding & BGV ({lifecycleDrawer.data.onboardings?.length || 0})
-                      </span>
+                      {/* Onboardings */}
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#0284c7', marginBottom: '10px' }}>
+                          4. Onboarding ({lifecycleDrawer.data.onboardings?.length || 0})
+                        </h4>
+                        {!lifecycleDrawer.data.onboardings || lifecycleDrawer.data.onboardings.length === 0 ? (
+                          <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No onboarding records yet.</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {lifecycleDrawer.data.onboardings.map((ob: any, idx: number) => (
+                              <div key={idx} style={{ padding: '8px 10px', border: '1px solid #bae6fd', backgroundColor: '#f0f9ff', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                <div style={{ fontWeight: '700', color: '#0369a1' }}>{ob.candidates?.full_name || 'Candidate'}</div>
+                                <div style={{ fontSize: '0.75rem', color: '#0284c7', marginTop: '2px' }}>Joining: {ob.actual_joining_date || 'TBD'} | BGV: {ob.bgv_status}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-                    {!lifecycleDrawer.data.onboardings || lifecycleDrawer.data.onboardings.length === 0 ? (
-                      <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No onboarding record for this requirement yet.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {lifecycleDrawer.data.onboardings.map((ob: any, idx: number) => (
-                          <div key={idx} style={{ padding: '10px 12px', border: '1px solid #bae6fd', backgroundColor: '#f0f9ff', borderRadius: '8px', fontSize: '0.82rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: '#0369a1' }}>
-                              <span>Candidate: {ob.candidates?.full_name || 'Candidate'}</span>
-                              <span>BGV: {ob.bgv_status?.toUpperCase()}</span>
-                            </div>
-                            <div style={{ marginTop: '4px', color: '#0284c7', fontSize: '0.78rem' }}>
-                              Joining Date: <strong>{ob.actual_joining_date || 'TBD'}</strong> | Status: {ob.status}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </>
               )}
             </div>
 
-            {/* Drawer Footer */}
-            <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
+            {/* Footer */}
+            <div style={{ padding: '12px 24px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Costaff Enterprise ATS — Requisition & Candidate Lifecycle Management</div>
               <button
                 onClick={() => setLifecycleDrawer({ ...lifecycleDrawer, open: false })}
                 style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
               >
-                Close History
+                Close Fullscreen Workspace
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BATCH ASSIGN CANDIDATES MODAL */}
+      {assignModal.open && (
+        <div
+          onClick={() => setAssignModal({ ...assignModal, open: false })}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', zIndex: 2100, backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ width: '700px', maxWidth: '95vw', maxHeight: '85vh', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          >
+            <div style={{ padding: '16px 20px', backgroundColor: '#0f172a', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: '700', color: '#fff', margin: 0 }}>Assign Candidates to Mandate ({assignModal.requestId})</h3>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '2px' }}>Select candidates from repository (20-30 candidates batch)</div>
+              </div>
+              <button onClick={() => setAssignModal({ ...assignModal, open: false })} style={{ border: 'none', background: 'transparent', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ padding: '14px 20px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="Search candidates by name, email, phone, location..."
+                value={assignModal.search}
+                onChange={(e) => setAssignModal({ ...assignModal, search: e.target.value })}
+                style={{ flex: 1, padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem' }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const filtered = assignModal.repoCandidates
+                    .filter(c => !assignModal.search || c.full_name?.toLowerCase().includes(assignModal.search.toLowerCase()))
+                    .map(c => c.id);
+                  setAssignModal({ ...assignModal, selectedCids: filtered });
+                }}
+                style={{ padding: '8px 12px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}
+              >
+                Select All Filtered
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+              {assignModal.loading ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+                  <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '1.8rem', marginBottom: '10px', color: '#2563eb' }}></i>
+                  <p>Loading candidate repository...</p>
+                </div>
+              ) : assignModal.repoCandidates.length === 0 ? (
+                <div style={{ padding: '30px', textAlign: 'center', color: '#64748b' }}>No candidates available in repository.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {assignModal.repoCandidates
+                    .filter(c => !assignModal.search || (c.full_name + ' ' + c.email + ' ' + c.phone + ' ' + c.current_location).toLowerCase().includes(assignModal.search.toLowerCase()))
+                    .map((cand: any) => {
+                      const isSelected = assignModal.selectedCids.includes(cand.id);
+                      return (
+                        <label
+                          key={cand.id}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', borderRadius: '8px', border: `1px solid ${isSelected ? '#3b82f6' : '#e2e8f0'}`,
+                            backgroundColor: isSelected ? '#eff6ff' : '#fff', cursor: 'pointer'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setAssignModal({ ...assignModal, selectedCids: [...assignModal.selectedCids, cand.id] });
+                              } else {
+                                setAssignModal({ ...assignModal, selectedCids: assignModal.selectedCids.filter(id => id !== cand.id) });
+                              }
+                            }}
+                            style={{ width: '16px', height: '16px', accentColor: '#2563eb' }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0f172a' }}>{cand.full_name}</div>
+                            <div style={{ fontSize: '0.78rem', color: '#64748b' }}>{cand.email || 'No Email'} | {cand.phone || 'No Phone'} | 📍 {cand.current_location || 'N/A'}</div>
+                          </div>
+                          <div style={{ fontSize: '0.78rem', color: '#0369a1', fontWeight: '600' }}>
+                            {cand.current_ctc ? `₹${cand.current_ctc} LPA` : 'N/A'}
+                          </div>
+                        </label>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+
+            <div style={{ padding: '14px 20px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: '700', color: '#2563eb' }}>
+                Selected Candidates: {assignModal.selectedCids.length}
+              </div>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setAssignModal({ ...assignModal, open: false })}
+                  style={{ padding: '8px 16px', border: '1px solid #cbd5e1', backgroundColor: '#fff', borderRadius: '6px', fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={assignModal.selectedCids.length === 0 || assignModal.submitting}
+                  onClick={handleBatchAssignCandidates}
+                  style={{ padding: '8px 18px', backgroundColor: assignModal.selectedCids.length === 0 ? '#94a3b8' : '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  {assignModal.submitting ? 'Assigning...' : `Assign ${assignModal.selectedCids.length} Candidate(s)`}
+                </button>
+              </div>
             </div>
           </div>
         </div>

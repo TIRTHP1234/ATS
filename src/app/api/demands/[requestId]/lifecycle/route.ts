@@ -13,44 +13,73 @@ export async function GET(
 
     const supabase = await createClient();
 
-    // 1. Fetch demand details
-    const { data: demand } = await supabase
-      .from('demands')
+    // 1. Fetch demand details from v_demands_with_aging view (or fallback to demands table)
+    let { data: demand } = await supabase
+      .from('v_demands_with_aging')
       .select('*')
       .eq('request_id', requestId)
       .maybeSingle();
 
-    let actualDemand = demand;
-    if (!actualDemand) {
+    if (!demand) {
       const { data: demandById } = await supabase
-        .from('demands')
+        .from('v_demands_with_aging')
         .select('*')
         .eq('id', requestId)
         .maybeSingle();
-      actualDemand = demandById;
+      demand = demandById;
     }
 
-    if (!actualDemand) {
+    // Fallback to demands base table if view didn't return
+    if (!demand) {
+      const { data: rawDemand } = await supabase
+        .from('demands')
+        .select('*')
+        .or(`request_id.eq.${requestId},id.eq.${requestId}`)
+        .maybeSingle();
+      demand = rawDemand;
+    }
+
+    if (!demand) {
       return NextResponse.json({ error: 'Demand not found' }, { status: 404 });
     }
 
-    const reqIdStr = actualDemand.request_id || requestId;
-    const demandUuid = actualDemand.id;
+    // Ensure client_name fallback to account_name
+    if (!demand.client_name && demand.account_name) {
+      demand.client_name = demand.account_name;
+    }
 
-    // 2. Fetch interviews linked to this request_id
+    const reqIdStr = demand.request_id || requestId;
+    const demandUuid = demand.id;
+
+    // 2. Fetch assigned candidate submissions linked to this demand
+    let submissions: any[] = [];
+    if (demandUuid) {
+      try {
+        const { data: subData } = await supabase
+          .from('submissions')
+          .select('*, candidates(*)')
+          .eq('demand_id', demandUuid)
+          .order('created_at', { ascending: false });
+        submissions = subData || [];
+      } catch (e) {
+        console.warn('Submissions fetch warning:', e);
+      }
+    }
+
+    // 3. Fetch interviews linked to this request_id or demand_id
     let interviews: any[] = [];
     try {
       const { data: ivData } = await supabase
         .from('interviews')
         .select('*')
-        .eq('demand_request_id', reqIdStr)
+        .or(`demand_request_id.eq.${reqIdStr},demand_id.eq.${demandUuid}`)
         .order('scheduled_date', { ascending: true });
       interviews = ivData || [];
     } catch (e) {
       console.warn('Interviews fetch warning:', e);
     }
 
-    // 3. Fetch offers linked to this demand
+    // 4. Fetch offers linked to this demand
     let offers: any[] = [];
     if (demandUuid) {
       try {
@@ -64,7 +93,7 @@ export async function GET(
       }
     }
 
-    // 4. Fetch onboardings linked to this demand
+    // 5. Fetch onboardings linked to this demand
     let onboardings: any[] = [];
     if (demandUuid) {
       try {
@@ -80,7 +109,8 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      demand: actualDemand,
+      demand,
+      submissions: submissions || [],
       interviews: interviews || [],
       offers: offers || [],
       onboardings: onboardings || []
