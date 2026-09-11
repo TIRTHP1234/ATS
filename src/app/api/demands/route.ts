@@ -75,8 +75,9 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error('Error creating demand:', error);
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      console.error('Error creating demand:', JSON.stringify(error, null, 2));
+      console.error('Payload sent to Supabase:', JSON.stringify(newDemand, null, 2));
+      return NextResponse.json({ error: error.message, details: error }, { status: 400 });
     }
 
     // Trigger Automated SMTP Email to Account Manager (AM) if AM email is provided
