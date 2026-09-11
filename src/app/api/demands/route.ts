@@ -51,12 +51,11 @@ export async function POST(request: Request) {
     const timestamp = Date.now().toString().slice(-4);
     const request_id = body.request_id?.trim() || `CSF-2026-${timestamp}`;
 
-    const newDemand = {
+    const newDemand: Record<string, any> = {
       request_id,
       external_requisition_id: body.external_requisition_id?.trim() || null,
       buzzworks_id: body.buzzworks_id?.trim() || null,
-      client_name: body.client_name?.trim() || null,
-      am_name: body.am_name?.trim() || null,
+      account_name: body.client_name?.trim() || body.account_name?.trim() || null,
       skill_description: body.skill_description?.trim() || 'New Requirement',
       role_category: body.role_category || 'Permanent',
       experience_level: body.experience_level?.trim() || 'Mid-Senior',
@@ -65,7 +64,7 @@ export async function POST(request: Request) {
       priority: body.priority || 'High',
       budget_min: body.budget_min ? parseFloat(body.budget_min) : null,
       budget_max: body.budget_max ? parseFloat(body.budget_max) : null,
-      locations: body.locations || [],
+      locations: Array.isArray(body.locations) ? body.locations : (body.locations ? [body.locations] : []),
       notes: body.notes?.trim() || ''
     };
 
@@ -81,12 +80,12 @@ export async function POST(request: Request) {
     }
 
     // Trigger Automated SMTP Email to Account Manager (AM) if AM email is provided
-    const amEmail = body.am_email?.trim() || body.am_name?.includes('@') ? body.am_name.trim() : null;
+    const amEmail = body.am_email?.trim() || (body.am_name?.includes('@') ? body.am_name.trim() : null);
     if (amEmail) {
       sendEmail({
         to: amEmail,
         subject: `[Costaff ATS] New Client Mandate Assigned: ${data.request_id} — ${data.skill_description}`,
-        html: getAmDemandAssignedEmailHtml({ ...data, am_name: body.am_name || 'Account Manager', client_name: body.client_name })
+        html: getAmDemandAssignedEmailHtml({ ...data, am_name: body.am_name || 'Account Manager', client_name: body.client_name || data.account_name })
       }).catch(e => console.error('Error triggering AM email:', e));
     }
 
@@ -111,8 +110,9 @@ export async function PUT(request: Request) {
 
     if (body.request_id !== undefined) updateData.request_id = body.request_id?.trim();
     if (body.external_requisition_id !== undefined) updateData.external_requisition_id = body.external_requisition_id?.trim();
-    if (body.client_name !== undefined) updateData.client_name = body.client_name?.trim() || null;
-    if (body.am_name !== undefined) updateData.am_name = body.am_name?.trim() || null;
+    if (body.client_name !== undefined || body.account_name !== undefined) {
+      updateData.account_name = body.client_name?.trim() || body.account_name?.trim() || null;
+    }
     if (body.skill_description !== undefined) updateData.skill_description = body.skill_description?.trim();
     if (body.role_category !== undefined) updateData.role_category = body.role_category;
     if (body.experience_level !== undefined) updateData.experience_level = body.experience_level?.trim();
@@ -121,7 +121,7 @@ export async function PUT(request: Request) {
     if (body.priority !== undefined) updateData.priority = body.priority;
     if (body.budget_min !== undefined) updateData.budget_min = body.budget_min ? parseFloat(body.budget_min) : null;
     if (body.budget_max !== undefined) updateData.budget_max = body.budget_max ? parseFloat(body.budget_max) : null;
-    if (body.locations !== undefined) updateData.locations = body.locations || [];
+    if (body.locations !== undefined) updateData.locations = Array.isArray(body.locations) ? body.locations : (body.locations ? [body.locations] : []);
     if (body.notes !== undefined) updateData.notes = body.notes?.trim();
 
     const { data, error } = await supabase

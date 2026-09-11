@@ -47,11 +47,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const supabase = await createClient();
 
-    const newInterview = {
-      demand_id: body.demand_id || null,
-      demand_request_id: body.demand_request_id || '',
-      candidate_id: body.candidate_id || null,
-      candidate_name: body.candidate_name || '',
+    const newInterview: Record<string, any> = {
       interviewer_name: body.interviewer_name || 'SPOC Interviewer',
       level: body.level || 'L1',
       skill_tested: body.skill_tested || 'Technical Skills',
@@ -63,6 +59,10 @@ export async function POST(request: Request) {
       meeting_link: body.meeting_link || '',
       feedback: body.feedback || ''
     };
+
+    if (body.demand_id) newInterview.demand_id = body.demand_id;
+    if (body.candidate_id) newInterview.candidate_id = body.candidate_id;
+    if (body.submission_id) newInterview.submission_id = body.submission_id;
 
     const { data, error } = await supabase
       .from('interviews')
