@@ -24,7 +24,20 @@ export async function GET(
       return NextResponse.json({ error: 'Candidate profile not found' }, { status: 404 });
     }
 
-    // 2. Fetch interviews for this candidate
+    // 2. Fetch submissions / mapped demands for this candidate
+    let submissions: any[] = [];
+    try {
+      const { data: subData } = await supabase
+        .from('submissions')
+        .select('*, demands(*, clients(name))')
+        .eq('candidate_id', candidateId)
+        .order('created_at', { ascending: false });
+      submissions = subData || [];
+    } catch (e) {
+      console.warn('Submissions fetch warning:', e);
+    }
+
+    // 3. Fetch interviews for this candidate
     let interviews: any[] = [];
     try {
       if (candidate.email) {
@@ -48,7 +61,7 @@ export async function GET(
       console.warn('Interviews fetch warning:', e);
     }
 
-    // 3. Fetch offers for this candidate
+    // 4. Fetch offers for this candidate
     let offers: any[] = [];
     try {
       const { data: offerData } = await supabase
@@ -60,7 +73,7 @@ export async function GET(
       console.warn('Offers fetch warning:', e);
     }
 
-    // 4. Fetch onboardings for this candidate
+    // 5. Fetch onboardings for this candidate
     let onboardings: any[] = [];
     try {
       const { data: onboardingData } = await supabase
@@ -72,10 +85,14 @@ export async function GET(
       console.warn('Onboardings fetch warning:', e);
     }
 
-    // 5. Gather all linked Request IDs
+    // 6. Gather all linked Request IDs
     const linkedReqIds = new Set<string>();
     if (candidate.demand_request_id) linkedReqIds.add(candidate.demand_request_id);
     if (candidate.request_id) linkedReqIds.add(candidate.request_id);
+
+    submissions.forEach(s => {
+      if (s.demands?.request_id) linkedReqIds.add(s.demands.request_id);
+    });
     interviews.forEach(i => { if (i.demand_request_id) linkedReqIds.add(i.demand_request_id); });
     offers.forEach(o => { if (o.demands?.request_id) linkedReqIds.add(o.demands.request_id); });
     onboardings.forEach(ob => { if (ob.demands?.request_id) linkedReqIds.add(ob.demands.request_id); });
@@ -84,6 +101,7 @@ export async function GET(
       success: true,
       candidate,
       linkedRequestIds: Array.from(linkedReqIds),
+      submissions: submissions || [],
       interviews: interviews || [],
       offers: offers || [],
       onboardings: onboardings || []

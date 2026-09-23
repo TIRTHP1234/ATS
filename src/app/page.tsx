@@ -483,8 +483,13 @@ export default function SinglePageATSApp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: submissionId, stage: newStage })
       });
-      if (res.ok && lifecycleDrawer.requestId) {
-        openLifecycle(lifecycleDrawer.requestId);
+      if (res.ok) {
+        if (lifecycleDrawer.open && lifecycleDrawer.requestId) {
+          openLifecycle(lifecycleDrawer.requestId);
+        }
+        if (candidateDrawer.open && candidateDrawer.candidateId) {
+          openCandidateHistory(candidateDrawer.candidateId);
+        }
       }
     } catch (e) {
       console.error('Error updating candidate stage:', e);
@@ -2890,7 +2895,17 @@ export default function SinglePageATSApp() {
                                 return (
                                   <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                     <td style={{ padding: '10px', fontWeight: '700', color: '#0f172a' }}>
-                                      {cand.full_name || 'Candidate'}
+                                      {cand.id ? (
+                                        <button
+                                          onClick={() => openCandidateHistory(cand.id)}
+                                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: '700', color: '#2563eb', fontSize: '0.85rem', textAlign: 'left', textDecoration: 'underline' }}
+                                          title="Click to view candidate 360 lifecycle workspace"
+                                        >
+                                          {cand.full_name || 'Candidate'}
+                                        </button>
+                                      ) : (
+                                        <span>{cand.full_name || 'Candidate'}</span>
+                                      )}
                                       {cand.current_location && <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: '400' }}>📍 {cand.current_location}</div>}
                                     </td>
                                     <td style={{ padding: '10px', color: '#475569' }}>
@@ -3147,215 +3162,330 @@ export default function SinglePageATSApp() {
         </div>
       )}
 
-      {/* CANDIDATE 360 PROFILE & APPLICATION HISTORY DRAWER */}
+      {/* CANDIDATE 360 PROFILE & APPLICATION HISTORY FULL-SCREEN WORKSPACE */}
       {candidateDrawer.open && (
         <div
           onClick={() => setCandidateDrawer({ ...candidateDrawer, open: false })}
-          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.65)', zIndex: 2000, backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'flex-end' }}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.75)', zIndex: 2000, backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              width: '560px', maxWidth: '90vw', height: '100%', backgroundColor: '#fff', boxShadow: '-10px 0 30px rgba(0,0,0,0.25)',
-              display: 'flex', flexDirection: 'column'
+              width: '96vw', height: '92vh', maxWidth: '1600px', backgroundColor: '#fff', borderRadius: '12px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.35)',
+              display: 'flex', flexDirection: 'column', overflow: 'hidden'
             }}
           >
-            {/* Drawer Header */}
-            <div style={{ padding: '20px 24px', backgroundColor: '#0f172a', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Header */}
+            <div style={{ padding: '16px 24px', backgroundColor: '#0f172a', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e293b' }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <i className="fa-solid fa-user-gear" style={{ color: '#38bdf8' }}></i>
-                  <h2 style={{ fontSize: '1.1rem', fontWeight: '700', color: '#f8fafc' }}>Candidate 360 Profile & History</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <i className="fa-solid fa-id-card-clip" style={{ color: '#38bdf8', fontSize: '1.2rem' }}></i>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: '700', color: '#f8fafc', margin: 0 }}>Candidate 360 Full Lifecycle Workspace</h2>
+                  {candidateDrawer.data?.candidate?.full_name && (
+                    <span style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.3)', padding: '2px 10px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: '700' }}>
+                      {candidateDrawer.data.candidate.full_name}
+                    </span>
+                  )}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '2px' }}>
-                  Candidate: <span style={{ color: '#38bdf8', fontWeight: '700' }}>{candidateDrawer.data?.candidate?.full_name || 'Loading...'}</span>
+                  Cross-Mandate Selection Stages & Application History
                 </div>
               </div>
               <button
                 onClick={() => setCandidateDrawer({ ...candidateDrawer, open: false })}
-                style={{ border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ border: 'none', background: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: '50%', width: '34px', height: '34px', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 ✕
               </button>
             </div>
 
-            {/* Drawer Body */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Workspace Body */}
+            <div style={{ flex: 1, overflow: 'hidden', display: 'flex' }}>
               {candidateDrawer.loading ? (
-                <div style={{ padding: '60px', textAlign: 'center', color: '#64748b' }}>
-                  <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '2rem', marginBottom: '12px', color: '#2563eb' }}></i>
-                  <p style={{ fontWeight: '600' }}>Fetching Candidate Profile & Application History...</p>
+                <div style={{ flex: 1, padding: '60px', textAlign: 'center', color: '#64748b', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: '2.5rem', marginBottom: '16px', color: '#2563eb' }}></i>
+                  <p style={{ fontWeight: '600', fontSize: '1.1rem' }}>Fetching Candidate 360 Profile & History...</p>
                 </div>
               ) : !candidateDrawer.data?.candidate ? (
-                <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>
-                  <i className="fa-solid fa-circle-exclamation" style={{ fontSize: '2rem', marginBottom: '10px' }}></i>
-                  <p>Could not load candidate profile details.</p>
+                <div style={{ flex: 1, padding: '40px', textAlign: 'center', color: '#dc2626', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="fa-solid fa-circle-exclamation" style={{ fontSize: '2.5rem', marginBottom: '12px' }}></i>
+                  <p style={{ fontSize: '1rem', fontWeight: '600' }}>Could not load candidate profile details.</p>
                 </div>
               ) : (
                 <>
-                  {/* Step 1: Candidate Personal & Contact Information Card */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#f8fafc' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <i className="fa-solid fa-address-card"></i> Candidate Contact & Professional Details
-                      </span>
-                      <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700', backgroundColor: '#eff6ff', color: '#2563eb' }}>
-                        {candidateDrawer.data.candidate.source || 'Naukri'}
-                      </span>
+                  {/* Left Overview Panel */}
+                  <div style={{ width: '340px', minWidth: '320px', backgroundColor: '#f8fafc', borderRight: '1px solid #e2e8f0', padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* Contact & Professional Details */}
+                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#2563eb' }}>Candidate Profile</span>
+                        <span style={{ padding: '3px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700', backgroundColor: '#eff6ff', color: '#2563eb' }}>
+                          {candidateDrawer.data.candidate.source || 'Naukri'}
+                        </span>
+                      </div>
+
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', marginBottom: '12px' }}>
+                        {candidateDrawer.data.candidate.full_name}
+                      </h3>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.82rem', color: '#334155' }}>
+                        <div><i className="fa-solid fa-phone" style={{ color: '#64748b', width: '18px' }}></i> <strong>Phone:</strong> {candidateDrawer.data.candidate.phone || '—'}</div>
+                        <div><i className="fa-regular fa-envelope" style={{ color: '#64748b', width: '18px' }}></i> <strong>Email:</strong> {candidateDrawer.data.candidate.email || '—'}</div>
+                        <div><i className="fa-solid fa-building" style={{ color: '#64748b', width: '18px' }}></i> <strong>Company:</strong> {candidateDrawer.data.candidate.current_company || '—'}</div>
+                        <div><i className="fa-solid fa-location-dot" style={{ color: '#64748b', width: '18px' }}></i> <strong>Location:</strong> {candidateDrawer.data.candidate.current_location || '—'}</div>
+                        <div><i className="fa-solid fa-indian-rupee-sign" style={{ color: '#64748b', width: '18px' }}></i> <strong>Current CTC:</strong> {candidateDrawer.data.candidate.current_ctc ? `₹${candidateDrawer.data.candidate.current_ctc} LPA` : '—'}</div>
+                        <div><i className="fa-solid fa-bullseye" style={{ color: '#64748b', width: '18px' }}></i> <strong>Expected CTC:</strong> {candidateDrawer.data.candidate.expected_ctc ? `₹${candidateDrawer.data.candidate.expected_ctc} LPA` : '—'}</div>
+                        <div><i className="fa-solid fa-hourglass-half" style={{ color: '#64748b', width: '18px' }}></i> <strong>Notice Period:</strong> {candidateDrawer.data.candidate.notice_period || 'Immediate'}</div>
+                        <div><i className="fa-regular fa-calendar-check" style={{ color: '#64748b', width: '18px' }}></i> <strong>Added Date:</strong> {candidateDrawer.data.candidate.created_at ? new Date(candidateDrawer.data.candidate.created_at).toLocaleDateString() : 'Recent'}</div>
+                      </div>
+
+                      {/* Belonging Request IDs Badges */}
+                      <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: '800', textTransform: 'uppercase', color: '#1e40af', marginBottom: '8px' }}>
+                          <i className="fa-solid fa-link" style={{ marginRight: '6px' }}></i>Mapped Req ID(s):
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {candidateDrawer.data.linkedRequestIds && candidateDrawer.data.linkedRequestIds.length > 0 ? (
+                            candidateDrawer.data.linkedRequestIds.map((reqId: string, idx: number) => (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  setCandidateDrawer({ ...candidateDrawer, open: false });
+                                  openLifecycle(reqId);
+                                }}
+                                title="Click to view full Requirement Lifecycle Workspace"
+                                style={{ padding: '4px 10px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              >
+                                <i className="fa-solid fa-layer-group" style={{ fontSize: '0.7rem' }}></i> {reqId}
+                              </button>
+                            ))
+                          ) : (
+                            <span style={{ fontSize: '0.78rem', color: '#64748b', fontStyle: 'italic' }}>Unmapped Candidate</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: '800', color: '#0f172a', marginBottom: '10px' }}>
-                      {candidateDrawer.data.candidate.full_name}
-                    </h3>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '0.82rem', color: '#334155' }}>
-                      <div><i className="fa-solid fa-phone" style={{ color: '#64748b', width: '16px' }}></i> <strong>Phone:</strong> {candidateDrawer.data.candidate.phone || '—'}</div>
-                      <div><i className="fa-regular fa-envelope" style={{ color: '#64748b', width: '16px' }}></i> <strong>Email:</strong> {candidateDrawer.data.candidate.email || '—'}</div>
-                      <div><i className="fa-solid fa-building" style={{ color: '#64748b', width: '16px' }}></i> <strong>Current Company:</strong> {candidateDrawer.data.candidate.current_company || '—'}</div>
-                      <div><i className="fa-solid fa-location-dot" style={{ color: '#64748b', width: '16px' }}></i> <strong>Location:</strong> {candidateDrawer.data.candidate.current_location || '—'}</div>
-                      <div><i className="fa-solid fa-indian-rupee-sign" style={{ color: '#64748b', width: '16px' }}></i> <strong>Current CTC:</strong> {candidateDrawer.data.candidate.current_ctc ? `₹${candidateDrawer.data.candidate.current_ctc} LPA` : '—'}</div>
-                      <div><i className="fa-solid fa-bullseye" style={{ color: '#64748b', width: '16px' }}></i> <strong>Expected CTC:</strong> {candidateDrawer.data.candidate.expected_ctc ? `₹${candidateDrawer.data.candidate.expected_ctc} LPA` : '—'}</div>
-                      <div><i className="fa-solid fa-hourglass-half" style={{ color: '#64748b', width: '16px' }}></i> <strong>Notice Period:</strong> {candidateDrawer.data.candidate.notice_period || 'Immediate'}</div>
-                      <div><i className="fa-regular fa-calendar-check" style={{ color: '#64748b', width: '16px' }}></i> <strong>Added Date:</strong> {candidateDrawer.data.candidate.created_at ? new Date(candidateDrawer.data.candidate.created_at).toLocaleDateString() : 'Recent'}</div>
+                    {/* Quick Activity Stats */}
+                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#475569', marginBottom: '12px' }}>Activity Summary</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div style={{ backgroundColor: '#eff6ff', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#1d4ed8' }}>{candidateDrawer.data.submissions?.length || 0}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#3b82f6', fontWeight: '600' }}>Mapped Mandates</div>
+                        </div>
+                        <div style={{ backgroundColor: '#f3e8ff', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#6b21a8' }}>{candidateDrawer.data.interviews?.length || 0}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#9333ea', fontWeight: '600' }}>Interviews</div>
+                        </div>
+                        <div style={{ backgroundColor: '#ecfdf5', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#047857' }}>{candidateDrawer.data.offers?.length || 0}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#10b981', fontWeight: '600' }}>Offers</div>
+                        </div>
+                        <div style={{ backgroundColor: '#e0f2fe', padding: '10px', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#0369a1' }}>{candidateDrawer.data.onboardings?.length || 0}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#0284c7', fontWeight: '600' }}>Onboarded</div>
+                        </div>
+                      </div>
                     </div>
+                  </div>
 
-                    {/* BELONGING REQUEST ID(S) BADGE */}
-                    <div style={{ marginTop: '14px', padding: '10px 12px', backgroundColor: '#eff6ff', borderRadius: '8px', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: '700', color: '#1e40af' }}>
-                        <i className="fa-solid fa-file-signature" style={{ marginRight: '6px' }}></i>Belonging Request ID(s):
-                      </span>
-                      {candidateDrawer.data.linkedRequestIds && candidateDrawer.data.linkedRequestIds.length > 0 ? (
-                        candidateDrawer.data.linkedRequestIds.map((reqId: string, idx: number) => (
-                          <button
-                            key={idx}
-                            onClick={() => {
-                              setCandidateDrawer({ ...candidateDrawer, open: false });
-                              openLifecycle(reqId);
-                            }}
-                            title="Click to view full Requirement Lifecycle"
-                            style={{ padding: '3px 10px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.78rem', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                          >
-                            <i className="fa-solid fa-clock-rotate-left" style={{ fontSize: '0.7rem' }}></i> {reqId}
-                          </button>
-                        ))
+                  {/* Right Journey Area */}
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {/* Section 1: Mapped Requirements & Selection Stages */}
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px', backgroundColor: '#fff' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                        <div>
+                          <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#0f172a', margin: 0 }}>
+                            <i className="fa-solid fa-list-check" style={{ color: '#2563eb', marginRight: '6px' }}></i>
+                            1. Mapped Requisitions & Selection Stages ({candidateDrawer.data.submissions?.length || 0})
+                          </h4>
+                          <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>All Requisitions mapped to this candidate with dual-direction stage management</div>
+                        </div>
+                      </div>
+
+                      {!candidateDrawer.data.submissions || candidateDrawer.data.submissions.length === 0 ? (
+                        <div style={{ padding: '30px', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                          <i className="fa-solid fa-file-excel" style={{ fontSize: '1.8rem', color: '#94a3b8', marginBottom: '8px' }}></i>
+                          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>Candidate is not assigned to any requisition yet.</p>
+                        </div>
                       ) : (
-                        <span style={{ fontSize: '0.78rem', color: '#64748b', fontStyle: 'italic' }}>Unmapped / General Candidate Pool</span>
+                        <div style={{ overflowX: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+                            <thead>
+                              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', textAlign: 'left', color: '#475569' }}>
+                                <th style={{ padding: '10px' }}>Req ID</th>
+                                <th style={{ padding: '10px' }}>Client Name</th>
+                                <th style={{ padding: '10px' }}>Role / Skill Description</th>
+                                <th style={{ padding: '10px' }}>Selection Stage</th>
+                                <th style={{ padding: '10px', textAlign: 'right' }}>Update Stage</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {candidateDrawer.data.submissions.map((sub: any, idx: number) => {
+                                const dem = sub.demands || {};
+                                const clientName = dem.client_name || dem.account_name || 'Costaff Client';
+                                const reqId = dem.request_id || 'REQ';
+                                return (
+                                  <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <td style={{ padding: '10px', fontWeight: '700' }}>
+                                      <button
+                                        onClick={() => {
+                                          setCandidateDrawer({ ...candidateDrawer, open: false });
+                                          openLifecycle(reqId);
+                                        }}
+                                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontWeight: '700', color: '#2563eb', fontSize: '0.85rem', textDecoration: 'underline' }}
+                                        title="Click to view full Requirement Workspace"
+                                      >
+                                        {reqId}
+                                      </button>
+                                    </td>
+                                    <td style={{ padding: '10px', fontWeight: '600', color: '#0369a1' }}>
+                                      {clientName}
+                                    </td>
+                                    <td style={{ padding: '10px', color: '#334155' }}>
+                                      {dem.skill_description || 'Mandate'}
+                                    </td>
+                                    <td style={{ padding: '10px' }}>
+                                      <span style={{
+                                        padding: '4px 10px', borderRadius: '12px', fontSize: '0.75rem', fontWeight: '700',
+                                        backgroundColor: sub.stage === 'joined' ? '#dcfce7' : sub.stage === 'offer_issued' ? '#dbeafe' : sub.stage === 'rejected' ? '#fee2e2' : '#fef3c7',
+                                        color: sub.stage === 'joined' ? '#166534' : sub.stage === 'offer_issued' ? '#1e40af' : sub.stage === 'rejected' ? '#991b1b' : '#92400e'
+                                      }}>
+                                        {sub.stage?.replace(/_/g, ' ')?.toUpperCase() || 'PHONE CALL DONE'}
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '10px', textAlign: 'right' }}>
+                                      <select
+                                        value={sub.stage || 'phone_call_done'}
+                                        onChange={(e) => handleUpdateSubmissionStage(sub.id, e.target.value)}
+                                        style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.78rem', backgroundColor: '#fff', cursor: 'pointer', fontWeight: '600' }}
+                                      >
+                                        <option value="phone_call_done">📞 Phone Call Done</option>
+                                        <option value="l1_scheduled">🗓️ L1 Interview Scheduled</option>
+                                        <option value="l1_passed">✅ L1 Round Passed</option>
+                                        <option value="l2_passed">✅ L2 Round Passed</option>
+                                        <option value="client_round_passed">🎯 Client Round Passed</option>
+                                        <option value="offer_issued">📄 Offer Issued</option>
+                                        <option value="joined">🎉 Joined / Onboarded</option>
+                                        <option value="rejected">❌ Rejected / Dropped</option>
+                                      </select>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
                       )}
                     </div>
-                  </div>
 
-                  {/* Step 2: Mapped Demands & Interview History */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <i className="fa-solid fa-list-check"></i> Mapped Requirements & Interview Rounds ({candidateDrawer.data.interviews?.length || 0})
-                      </span>
-                    </div>
+                    {/* Section 2: Interview Logs & Feedback */}
+                    <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '18px', backgroundColor: '#fff' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h4 style={{ fontSize: '0.95rem', fontWeight: '700', color: '#7c3aed', margin: 0 }}>
+                          <i className="fa-solid fa-calendar-check" style={{ marginRight: '6px' }}></i>
+                          2. Interview Logs & Feedback ({candidateDrawer.data.interviews?.length || 0})
+                        </h4>
+                      </div>
 
-                    {!candidateDrawer.data.interviews || candidateDrawer.data.interviews.length === 0 ? (
-                      <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No interview rounds or mandate mappings recorded for this candidate yet.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                        {candidateDrawer.data.interviews.map((iv: any, idx: number) => {
-                          const st = getInterviewStatusStyle(iv.status);
-                          return (
-                            <div key={idx} style={{ padding: '10px 12px', borderLeft: `4px solid ${st.dot}`, backgroundColor: st.bg, borderRadius: '0 8px 8px 0', fontSize: '0.82rem' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: st.text }}>
-                                <span>
-                                  <button
-                                    onClick={() => {
-                                      setCandidateDrawer({ ...candidateDrawer, open: false });
-                                      openLifecycle(iv.demand_request_id);
-                                    }}
-                                    style={{ background: 'none', border: 'none', color: '#2563eb', textDecoration: 'underline', cursor: 'pointer', fontWeight: '700', fontSize: '0.82rem', padding: 0 }}
-                                  >
-                                    {iv.demand_request_id}
-                                  </button> — {iv.level} Round
-                                </span>
-                                <span>{st.label}</span>
-                              </div>
-                              <div style={{ marginTop: '4px', color: '#475569', fontSize: '0.78rem' }}>
-                                <span><strong>Interviewer:</strong> {iv.interviewer_name}</span> | <span><strong>Skill:</strong> {iv.skill_tested}</span>
-                              </div>
-                              <div style={{ marginTop: '2px', color: '#64748b', fontSize: '0.75rem' }}>
-                                <i className="fa-regular fa-calendar" style={{ marginRight: '4px' }}></i>{iv.scheduled_date} at {iv.scheduled_time} ({iv.mode})
-                              </div>
-                              {iv.feedback && (
-                                <div style={{ marginTop: '6px', fontStyle: 'italic', background: '#fff', padding: '6px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#334155' }}>
-                                  <i className="fa-regular fa-comment" style={{ marginRight: '4px' }}></i>Feedback: {iv.feedback}
+                      {!candidateDrawer.data.interviews || candidateDrawer.data.interviews.length === 0 ? (
+                        <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No interview rounds logged for this candidate yet.</p>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                          {candidateDrawer.data.interviews.map((iv: any, idx: number) => {
+                            const st = getInterviewStatusStyle(iv.status);
+                            return (
+                              <div key={idx} style={{ padding: '10px 12px', borderLeft: `4px solid ${st.dot}`, backgroundColor: st.bg, borderRadius: '0 8px 8px 0', fontSize: '0.82rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: st.text }}>
+                                  <span>
+                                    <button
+                                      onClick={() => {
+                                        setCandidateDrawer({ ...candidateDrawer, open: false });
+                                        openLifecycle(iv.demand_request_id);
+                                      }}
+                                      style={{ background: 'none', border: 'none', color: '#2563eb', textDecoration: 'underline', cursor: 'pointer', fontWeight: '700', fontSize: '0.82rem', padding: 0 }}
+                                    >
+                                      {iv.demand_request_id}
+                                    </button> — {iv.level} Round
+                                  </span>
+                                  <span>{st.label}</span>
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Step 3: Candidate Offers History */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#059669', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <i className="fa-solid fa-gift"></i> Offer History ({candidateDrawer.data.offers?.length || 0})
-                      </span>
+                                <div style={{ marginTop: '4px', color: '#475569', fontSize: '0.78rem' }}>
+                                  <span><strong>Interviewer:</strong> {iv.interviewer_name}</span> | <span><strong>Skill:</strong> {iv.skill_tested}</span>
+                                </div>
+                                <div style={{ marginTop: '2px', color: '#64748b', fontSize: '0.75rem' }}>
+                                  <i className="fa-regular fa-calendar" style={{ marginRight: '4px' }}></i>{iv.scheduled_date} at {iv.scheduled_time} ({iv.mode})
+                                </div>
+                                {iv.feedback && (
+                                  <div style={{ marginTop: '6px', fontStyle: 'italic', background: '#fff', padding: '6px 8px', borderRadius: '4px', border: '1px solid #e2e8f0', color: '#334155' }}>
+                                    <i className="fa-regular fa-comment" style={{ marginRight: '4px' }}></i>Feedback: {iv.feedback}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
 
-                    {!candidateDrawer.data.offers || candidateDrawer.data.offers.length === 0 ? (
-                      <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No offers issued to this candidate yet.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {candidateDrawer.data.offers.map((off: any, idx: number) => (
-                          <div key={idx} style={{ padding: '10px 12px', border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4', borderRadius: '8px', fontSize: '0.82rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: '#166534' }}>
-                              <span>Req ID: {off.demands?.request_id || 'Requirement'}</span>
-                              <span>Status: {off.status}</span>
-                            </div>
-                            <div style={{ marginTop: '4px', color: '#15803d', fontSize: '0.78rem' }}>
-                              Offered CTC: <strong>₹{off.offered_ctc} LPA</strong> | Offer Date: {off.offer_date}
-                            </div>
+                    {/* Section 3 & 4: Offers & Onboardings */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      {/* Offers */}
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#059669', marginBottom: '10px' }}>
+                          3. Offer History ({candidateDrawer.data.offers?.length || 0})
+                        </h4>
+                        {!candidateDrawer.data.offers || candidateDrawer.data.offers.length === 0 ? (
+                          <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No offers issued to this candidate yet.</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {candidateDrawer.data.offers.map((off: any, idx: number) => (
+                              <div key={idx} style={{ padding: '8px 10px', border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                <div style={{ fontWeight: '700', color: '#166534' }}>
+                                  Req ID: {off.demands?.request_id || 'Requirement'}
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#15803d', marginTop: '2px' }}>₹{off.offered_ctc} LPA | Offer Date: {off.offer_date} | Status: {off.status}</div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Step 4: Candidate Onboarding History */}
-                  <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                      <span style={{ fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#0284c7', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <i className="fa-solid fa-user-check"></i> Onboarding & BGV Verification ({candidateDrawer.data.onboardings?.length || 0})
-                      </span>
+                      {/* Onboardings */}
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '16px', backgroundColor: '#fff' }}>
+                        <h4 style={{ fontSize: '0.9rem', fontWeight: '700', color: '#0284c7', marginBottom: '10px' }}>
+                          4. Onboarding & BGV ({candidateDrawer.data.onboardings?.length || 0})
+                        </h4>
+                        {!candidateDrawer.data.onboardings || candidateDrawer.data.onboardings.length === 0 ? (
+                          <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No onboarding record for this candidate yet.</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {candidateDrawer.data.onboardings.map((ob: any, idx: number) => (
+                              <div key={idx} style={{ padding: '8px 10px', border: '1px solid #bae6fd', backgroundColor: '#f0f9ff', borderRadius: '8px', fontSize: '0.8rem' }}>
+                                <div style={{ fontWeight: '700', color: '#0369a1' }}>
+                                  Req ID: {ob.demands?.request_id || 'Requirement'}
+                                </div>
+                                <div style={{ fontSize: '0.75rem', color: '#0284c7', marginTop: '2px' }}>Joining: {ob.actual_joining_date || 'TBD'} | BGV: {ob.bgv_status}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-
-                    {!candidateDrawer.data.onboardings || candidateDrawer.data.onboardings.length === 0 ? (
-                      <p style={{ fontSize: '0.82rem', color: '#94a3b8', fontStyle: 'italic' }}>No onboarding or BGV record logged for this candidate yet.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {candidateDrawer.data.onboardings.map((ob: any, idx: number) => (
-                          <div key={idx} style={{ padding: '10px 12px', border: '1px solid #bae6fd', backgroundColor: '#f0f9ff', borderRadius: '8px', fontSize: '0.82rem' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', color: '#0369a1' }}>
-                              <span>Req ID: {ob.demands?.request_id || 'Requirement'}</span>
-                              <span>BGV: {ob.bgv_status?.toUpperCase()}</span>
-                            </div>
-                            <div style={{ marginTop: '4px', color: '#0284c7', fontSize: '0.78rem' }}>
-                              Joining Date: <strong>{ob.actual_joining_date || 'TBD'}</strong> | Status: {ob.status}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </>
               )}
             </div>
 
-            {/* Drawer Footer */}
-            <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'flex-end' }}>
+            {/* Footer */}
+            <div style={{ padding: '12px 24px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Costaff Enterprise ATS — Candidate 360 Workspace</div>
               <button
                 onClick={() => setCandidateDrawer({ ...candidateDrawer, open: false })}
                 style={{ padding: '8px 20px', backgroundColor: '#0f172a', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', fontSize: '0.85rem' }}
               >
-                Close Candidate Profile
+                Close Candidate Workspace
               </button>
             </div>
           </div>
