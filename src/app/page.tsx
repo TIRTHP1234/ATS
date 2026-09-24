@@ -431,6 +431,62 @@ export default function SinglePageATSApp() {
     submitting: boolean;
   }>({ open: false, demandId: null, requestId: null, search: '', selectedCids: [], loading: false, repoCandidates: [], submitting: false });
 
+  // Quick Candidate Creation in Assign Modal
+  const [showQuickAddCandidate, setShowQuickAddCandidate] = useState(false);
+  const [quickCandidateForm, setQuickCandidateForm] = useState({
+    full_name: '', phone: '', email: '', current_company: '', current_location: '',
+    current_ctc: '', expected_ctc: '', notice_period: 'Immediate', source: 'naukri'
+  });
+  const [quickCandidateError, setQuickCandidateError] = useState<string | null>(null);
+  const [quickCandidateSubmitting, setQuickCandidateSubmitting] = useState(false);
+
+  const handleCreateQuickCandidate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!quickCandidateForm.full_name.trim()) return;
+    setQuickCandidateSubmitting(true);
+    setQuickCandidateError(null);
+    try {
+      const res = await fetch('/api/candidates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(quickCandidateForm)
+      });
+      const data = await res.json();
+      if (!res.ok && data.isDuplicate && data.existingCandidate) {
+        const existingId = data.existingCandidate.id;
+        setAssignModal(prev => {
+          const exists = prev.repoCandidates.some((c: any) => c.id === existingId);
+          return {
+            ...prev,
+            repoCandidates: exists ? prev.repoCandidates : [data.existingCandidate, ...prev.repoCandidates],
+            selectedCids: Array.from(new Set([...prev.selectedCids, existingId]))
+          };
+        });
+        setShowQuickAddCandidate(false);
+        setQuickCandidateForm({ full_name: '', phone: '', email: '', current_company: '', current_location: '', current_ctc: '', expected_ctc: '', notice_period: 'Immediate', source: 'naukri' });
+        return;
+      }
+
+      if (res.ok && data.candidate) {
+        const newCand = data.candidate;
+        setAssignModal(prev => ({
+          ...prev,
+          repoCandidates: [newCand, ...prev.repoCandidates],
+          selectedCids: [...prev.selectedCids, newCand.id]
+        }));
+        setShowQuickAddCandidate(false);
+        setQuickCandidateForm({ full_name: '', phone: '', email: '', current_company: '', current_location: '', current_ctc: '', expected_ctc: '', notice_period: 'Immediate', source: 'naukri' });
+        fetchCandidates();
+      } else {
+        setQuickCandidateError(data.error || 'Failed to create candidate profile.');
+      }
+    } catch (err: any) {
+      setQuickCandidateError(err.message || 'Network error creating candidate.');
+    } finally {
+      setQuickCandidateSubmitting(false);
+    }
+  };
+
   const openAssignModal = async (demandId: string, requestId: string) => {
     setAssignModal({ open: true, demandId, requestId, search: '', selectedCids: [], loading: true, repoCandidates: [], submitting: false });
     try {
@@ -2858,12 +2914,27 @@ export default function SinglePageATSApp() {
                           </h4>
                           <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>Track candidate stage progression from Phone Call to Final Selection</div>
                         </div>
-                        <button
-                          onClick={() => openAssignModal(lifecycleDrawer.data.demand.id, lifecycleDrawer.requestId!)}
-                          style={{ padding: '6px 12px', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
-                        >
-                          + Assign Candidates
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => {
+                              openAssignModal(lifecycleDrawer.data.demand.id, lifecycleDrawer.requestId!);
+                              setQuickCandidateError(null);
+                              setShowQuickAddCandidate(true);
+                            }}
+                            style={{ padding: '6px 12px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <i className="fa-solid fa-user-plus"></i> + Add New Candidate
+                          </button>
+                          <button
+                            onClick={() => {
+                              openAssignModal(lifecycleDrawer.data.demand.id, lifecycleDrawer.requestId!);
+                              setShowQuickAddCandidate(false);
+                            }}
+                            style={{ padding: '6px 12px', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                          >
+                            <i className="fa-solid fa-users"></i> + Select Candidates
+                          </button>
+                        </div>
                       </div>
 
                       {!lifecycleDrawer.data.submissions || lifecycleDrawer.data.submissions.length === 0 ? (
@@ -3078,15 +3149,130 @@ export default function SinglePageATSApp() {
                 type="button"
                 onClick={() => {
                   const filtered = assignModal.repoCandidates
-                    .filter(c => !assignModal.search || c.full_name?.toLowerCase().includes(assignModal.search.toLowerCase()))
+                    .filter(c => !assignModal.search || (c.full_name + ' ' + c.email + ' ' + c.phone + ' ' + c.current_location).toLowerCase().includes(assignModal.search.toLowerCase()))
                     .map(c => c.id);
                   setAssignModal({ ...assignModal, selectedCids: filtered });
                 }}
-                style={{ padding: '8px 12px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer' }}
+                style={{ padding: '8px 12px', backgroundColor: '#e2e8f0', color: '#334155', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}
               >
                 Select All Filtered
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuickCandidateError(null);
+                  setShowQuickAddCandidate(!showQuickAddCandidate);
+                }}
+                style={{ padding: '8px 14px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}
+              >
+                <i className="fa-solid fa-user-plus"></i> + Add New Candidate
+              </button>
             </div>
+
+            {/* QUICK ADD CANDIDATE FORM PANEL */}
+            {showQuickAddCandidate && (
+              <div style={{ padding: '16px 20px', backgroundColor: '#eff6ff', borderBottom: '2px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.88rem', fontWeight: '800', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <i className="fa-solid fa-user-plus"></i> Add New Candidate & Auto-Select for Mandate ({assignModal.requestId})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickAddCandidate(false)}
+                    style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontWeight: '700', fontSize: '1rem' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {quickCandidateError && (
+                  <div style={{ padding: '8px 12px', backgroundColor: '#fee2e2', color: '#991b1b', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '600' }}>
+                    {quickCandidateError}
+                  </div>
+                )}
+
+                <form onSubmit={handleCreateQuickCandidate} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Full Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Rahul Sharma"
+                      value={quickCandidateForm.full_name}
+                      onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, full_name: e.target.value })}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Phone Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 9876543210"
+                      value={quickCandidateForm.phone}
+                      onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, phone: e.target.value })}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Email Address</label>
+                    <input
+                      type="email"
+                      placeholder="e.g. rahul@example.com"
+                      value={quickCandidateForm.email}
+                      onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, email: e.target.value })}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Current Company</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. TCS / Infosys"
+                      value={quickCandidateForm.current_company}
+                      onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, current_company: e.target.value })}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Location</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Bengaluru / Pune"
+                      value={quickCandidateForm.current_location}
+                      onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, current_location: e.target.value })}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Current CTC (LPA)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="e.g. 12"
+                      value={quickCandidateForm.current_ctc}
+                      onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, current_ctc: e.target.value })}
+                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                    />
+                  </div>
+                  <div style={{ gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickAddCandidate(false)}
+                      style={{ padding: '6px 14px', border: '1px solid #cbd5e1', backgroundColor: '#fff', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={quickCandidateSubmitting}
+                      style={{ padding: '6px 16px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
+                    >
+                      {quickCandidateSubmitting ? 'Saving...' : 'Save & Auto-Select Candidate'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
               {assignModal.loading ? (
