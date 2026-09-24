@@ -53,6 +53,8 @@ interface Candidate {
   current_location?: string;
   current_ctc?: number;
   expected_ctc?: number;
+  total_experience?: string | number;
+  notice_period?: string;
   skills?: string[];
   created_at: string;
 }
@@ -435,7 +437,8 @@ export default function SinglePageATSApp() {
   const [showQuickAddCandidate, setShowQuickAddCandidate] = useState(false);
   const [quickCandidateForm, setQuickCandidateForm] = useState({
     full_name: '', phone: '', email: '', current_company: '', current_location: '',
-    current_ctc: '', expected_ctc: '', notice_period: 'Immediate', source: 'naukri'
+    current_ctc: '', expected_ctc: '', total_experience: '', notice_period: 'Immediate',
+    skills: '', source: 'naukri'
   });
   const [quickCandidateError, setQuickCandidateError] = useState<string | null>(null);
   const [quickCandidateSubmitting, setQuickCandidateSubmitting] = useState(false);
@@ -463,7 +466,7 @@ export default function SinglePageATSApp() {
           };
         });
         setShowQuickAddCandidate(false);
-        setQuickCandidateForm({ full_name: '', phone: '', email: '', current_company: '', current_location: '', current_ctc: '', expected_ctc: '', notice_period: 'Immediate', source: 'naukri' });
+        setQuickCandidateForm({ full_name: '', phone: '', email: '', current_company: '', current_location: '', current_ctc: '', expected_ctc: '', total_experience: '', notice_period: 'Immediate', skills: '', source: 'naukri' });
         return;
       }
 
@@ -475,7 +478,7 @@ export default function SinglePageATSApp() {
           selectedCids: [...prev.selectedCids, newCand.id]
         }));
         setShowQuickAddCandidate(false);
-        setQuickCandidateForm({ full_name: '', phone: '', email: '', current_company: '', current_location: '', current_ctc: '', expected_ctc: '', notice_period: 'Immediate', source: 'naukri' });
+        setQuickCandidateForm({ full_name: '', phone: '', email: '', current_company: '', current_location: '', current_ctc: '', expected_ctc: '', total_experience: '', notice_period: 'Immediate', skills: '', source: 'naukri' });
         fetchCandidates();
       } else {
         setQuickCandidateError(data.error || 'Failed to create candidate profile.');
@@ -556,6 +559,44 @@ export default function SinglePageATSApp() {
     id: string;
     type: 'demand' | 'candidate' | 'interview' | 'offer';
   } | null>(null);
+
+  const [copiedDemandId, setCopiedDemandId] = useState<string | null>(null);
+
+  const handleCopyMandate = (item: any) => {
+    const locs = Array.isArray(item.locations) ? item.locations.join(', ') : (item.locations || 'N/A');
+    const text = `Requirement ID: ${item.request_id || ''}\nClient: ${item.client_name || 'N/A'}\nSkill: ${item.skill_description || 'N/A'}\nExp: ${item.experience_level || 'N/A'} Yrs\nBudget: ₹${item.budget_min || 0}-${item.budget_max || 0} LPA\nLocation: ${locs}`;
+    navigator.clipboard.writeText(text);
+    setCopiedDemandId(item.id);
+    setTimeout(() => setCopiedDemandId(null), 2000);
+  };
+
+  const downloadIcs = (item: any) => {
+    const title = `Interview: ${item.candidate_name || 'Candidate'} (${item.level || 'L1'}) for ${item.demand_request_id || 'Requirement'}`;
+    const dateStr = (item.scheduled_date || new Date().toISOString().split('T')[0]).replace(/-/g, '');
+    const timeStr = (item.scheduled_time || '10:00').replace(':', '') + '00';
+    const icsContent = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//Costaff ATS//EN',
+      'BEGIN:VEVENT',
+      `SUMMARY:${title}`,
+      `DESCRIPTION:Skill Tested: ${item.skill_tested || 'N/A'} | Interviewer: ${item.interviewer_name || 'N/A'} | Link: ${item.meeting_link || 'TBD'}`,
+      `DTSTART:${dateStr}T${timeStr}`,
+      `DTEND:${dateStr}T${timeStr}`,
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ].join('\n');
+
+    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `interview-${item.demand_request_id || 'invite'}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   // Candidate History Drawer State
   const [candidateDrawer, setCandidateDrawer] = useState<{
@@ -1236,10 +1277,17 @@ export default function SinglePageATSApp() {
                                 <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#f0f9ff', color: '#0369a1' }}>{item.role_category || 'Permanent'}</span></td>
                                 <td><span className={`priority-tag ${item.priority === 'High' ? 'high' : ''}`}>{item.priority}</span></td>
                                 <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: '600', backgroundColor: item.status === 'Open' ? '#ecfdf5' : '#f1f5f9', color: item.status === 'Open' ? '#10b981' : '#64748b' }}>{item.status}</span></td>
-                                <td><span className={`days-badge ${item.is_red_flag ? 'red' : ''}`}>{item.days_open} Days {item.is_red_flag && '🔴'}</span></td>
-                                <td>{item.am_name || 'Unassigned'}</td>
+                                <td><span className={`days-badge ${item.is_red_flag ? 'red' : ''}`}>{item.days_open} Days {item.is_red_flag && <i className="fa-solid fa-flag" style={{ marginLeft: '4px', color: '#dc2626' }}></i>}</span></td>
+                                <td><span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#eff6ff', color: '#1d4ed8', display: 'inline-flex', alignItems: 'center', gap: '3px' }}><i className="fa-solid fa-user-tie"></i>{item.am_name || 'Unassigned'}</span></td>
                                 <td>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <button
+                                      onClick={() => handleCopyMandate(item)}
+                                      title="Copy formatted Mandate Summary to clipboard"
+                                      style={{ padding: '4px 8px', border: '1px solid #cbd5e1', background: copiedDemandId === item.id ? '#dcfce7' : '#fff', color: copiedDemandId === item.id ? '#16a34a' : '#475569', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                    >
+                                      <i className={copiedDemandId === item.id ? 'fa-solid fa-check' : 'fa-solid fa-copy'}></i> {copiedDemandId === item.id ? 'Copied!' : 'Copy'}
+                                    </button>
                                     <button
                                       onClick={() => {
                                         setEditingDemand(item);
@@ -1337,25 +1385,55 @@ export default function SinglePageATSApp() {
                     : candidates.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No candidates found matching search & filters.</div>
                       : (
                         <table className="data-table">
-                          <thead><tr><th>Candidate Name</th><th>Phone</th><th>Email</th><th>Current Company</th><th>Location</th><th>CTC (Current / Expected)</th><th>Source</th><th>Stage</th><th>Actions</th></tr></thead>
+                          <thead><tr><th>Candidate Name</th><th>Phone & Email</th><th>Company & Location</th><th>CTC & Hike %</th><th>Notice Period</th><th>Source</th><th>Stage</th><th>Actions</th></tr></thead>
                           <tbody>
-                            {candidates.map(c => (
+                            {candidates.map(c => {
+                              const currCtc = typeof c.current_ctc === 'number' ? c.current_ctc : parseFloat(String(c.current_ctc || ''));
+                              const expCtc = typeof c.expected_ctc === 'number' ? c.expected_ctc : parseFloat(String(c.expected_ctc || ''));
+                              const hike = (!isNaN(currCtc) && currCtc > 0 && !isNaN(expCtc) && expCtc >= currCtc) 
+                                ? Math.round(((expCtc - currCtc) / currCtc) * 100) 
+                                : null;
+                              return (
                               <tr key={c.id}>
                                 <td>
-                                  <button
-                                    onClick={() => openCandidateHistory(c.id)}
-                                    title="Click to view Candidate 360 Profile & Full Application History"
-                                    style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.85rem', textAlign: 'left' }}
-                                  >
-                                    <i className="fa-solid fa-user-tag" style={{ marginRight: '6px', fontSize: '0.75rem', color: '#3b82f6' }}></i>
-                                    {c.full_name}
-                                  </button>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                    <button
+                                      onClick={() => openCandidateHistory(c.id)}
+                                      title="Click to view Candidate 360 Profile & Full Application History"
+                                      style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: '700', textDecoration: 'underline', cursor: 'pointer', padding: 0, fontSize: '0.85rem', textAlign: 'left' }}
+                                    >
+                                      <i className="fa-solid fa-user-tag" style={{ marginRight: '6px', fontSize: '0.75rem', color: '#3b82f6' }}></i>
+                                      {c.full_name}
+                                    </button>
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.68rem', color: '#16a34a', fontWeight: '600' }}>
+                                      <i className="fa-solid fa-shield-halved"></i> Verified Unique
+                                    </span>
+                                  </div>
                                 </td>
-                                <td>{c.phone}</td>
-                                <td>{c.email}</td>
-                                <td>{c.current_company || '—'}</td>
-                                <td>{c.current_location || '—'}</td>
-                                <td>{c.current_ctc ? `₹${c.current_ctc}L` : '—'} / {c.expected_ctc ? `₹${c.expected_ctc}L` : '—'}</td>
+                                <td>
+                                  <div style={{ fontSize: '0.8rem', color: '#0f172a' }}>{c.phone}</div>
+                                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{c.email}</div>
+                                </td>
+                                <td>
+                                  <div style={{ fontSize: '0.8rem', fontWeight: '600', color: '#334155' }}>{c.current_company || '—'}</div>
+                                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{c.current_location || '—'}</div>
+                                </td>
+                                <td>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                                    <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>{c.current_ctc ? `₹${c.current_ctc}L` : '—'} / {c.expected_ctc ? `₹${c.expected_ctc}L` : '—'}</span>
+                                    {hike !== null && (
+                                      <span style={{ padding: '1px 6px', borderRadius: '4px', fontSize: '0.68rem', fontWeight: '700', backgroundColor: hike > 50 ? '#fee2e2' : hike > 30 ? '#fef3c7' : '#dcfce7', color: hike > 50 ? '#dc2626' : hike > 30 ? '#d97706' : '#15803d' }}>
+                                        <i className="fa-solid fa-percent" style={{ fontSize: '0.6rem', marginRight: '2px' }}></i>+{hike}% Hike
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td>
+                                  <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#f8fafc', color: '#475569', border: '1px solid #cbd5e1', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                    <i className="fa-solid fa-user-clock" style={{ color: '#0284c7' }}></i>
+                                    {c.notice_period || 'Immediate'}
+                                  </span>
+                                </td>
                                 <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#eff6ff', color: '#2563eb' }}>{c.source || 'naukri'}</span></td>
                                 <td>{renderStageTag(editCandidateStage)}</td>
                                 <td>
@@ -1400,7 +1478,7 @@ export default function SinglePageATSApp() {
                                   </div>
                                 </td>
                               </tr>
-                            ))}
+                            ); })}
                           </tbody>
                         </table>
                       )}
@@ -1479,21 +1557,40 @@ export default function SinglePageATSApp() {
                                 <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#eff6ff', color: '#2563eb' }}>{item.link_status || 'Client_Shared'}</span></td>
                                 <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: '#ecfdf5', color: '#10b981' }}>{item.status}</span></td>
                                 <td>
-                                  {deletingItem?.id === item.id ? (
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
-                                      <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: '700' }}>Confirm?</span>
-                                      <button onClick={() => handleDelete(item.id, 'interview')} style={{ border: 'none', background: '#dc2626', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '700' }}>Yes</button>
-                                      <button onClick={() => setDeletingItem(null)} style={{ border: 'none', background: '#94a3b8', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer' }}>No</button>
-                                    </span>
-                                  ) : (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <button
-                                      onClick={() => setDeletingItem({ id: item.id, type: 'interview' })}
-                                      title="Delete Scheduled Interview"
-                                      style={{ padding: '4px 8px', border: '1px solid #fee2e2', background: '#fff5f5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                      onClick={() => downloadIcs(item)}
+                                      title="Download .ICS Calendar File Invite"
+                                      style={{ padding: '4px 8px', border: '1px solid #cbd5e1', background: '#fff', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#475569', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                     >
-                                      <i className="fa-solid fa-trash-can"></i> Delete
+                                      <i className="fa-solid fa-calendar-plus" style={{ color: '#2563eb' }}></i> .ICS Invite
                                     </button>
-                                  )}
+                                    {item.meeting_link && (
+                                      <a
+                                        href={item.meeting_link}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ padding: '4px 8px', border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                      >
+                                        <i className="fa-solid fa-video"></i> Join
+                                      </a>
+                                    )}
+                                    {deletingItem?.id === item.id ? (
+                                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: '#fef2f2', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5' }}>
+                                        <span style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: '700' }}>Confirm?</span>
+                                        <button onClick={() => handleDelete(item.id, 'interview')} style={{ border: 'none', background: '#dc2626', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer', fontWeight: '700' }}>Yes</button>
+                                        <button onClick={() => setDeletingItem(null)} style={{ border: 'none', background: '#94a3b8', color: '#fff', borderRadius: '3px', padding: '2px 6px', fontSize: '0.7rem', cursor: 'pointer' }}>No</button>
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => setDeletingItem({ id: item.id, type: 'interview' })}
+                                        title="Delete Scheduled Interview"
+                                        style={{ padding: '4px 8px', border: '1px solid #fee2e2', background: '#fff5f5', borderRadius: '6px', fontSize: '0.75rem', fontWeight: '600', cursor: 'pointer', color: '#dc2626', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                      >
+                                        <i className="fa-solid fa-trash-can"></i> Delete
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             ))}
@@ -1508,20 +1605,20 @@ export default function SinglePageATSApp() {
                     <h2 className="card-title"><i className="fa-regular fa-calendar" style={{ marginRight: '8px' }}></i>{getCalendarDays().monthName} {getCalendarDays().year}</h2>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', fontSize: '0.75rem', fontWeight: '600' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }} />
-                        <span style={{ color: '#059669' }}>🟢 Completed</span>
+                        <i className="fa-solid fa-circle-check" style={{ color: '#10b981' }}></i>
+                        <span style={{ color: '#059669' }}>Completed</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3b82f6' }} />
-                        <span style={{ color: '#2563eb' }}>🔵 Scheduled</span>
+                        <i className="fa-solid fa-calendar-check" style={{ color: '#3b82f6' }}></i>
+                        <span style={{ color: '#2563eb' }}>Scheduled</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
-                        <span style={{ color: '#dc2626' }}>🔴 Candidate No-Show</span>
+                        <i className="fa-solid fa-user-xmark" style={{ color: '#ef4444' }}></i>
+                        <span style={{ color: '#dc2626' }}>Candidate No-Show</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f59e0b' }} />
-                        <span style={{ color: '#d97706' }}>🟡 Client No-Show</span>
+                        <i className="fa-solid fa-building-circle-xmark" style={{ color: '#f59e0b' }}></i>
+                        <span style={{ color: '#d97706' }}>Client No-Show</span>
                       </div>
                     </div>
                   </div>
@@ -1606,9 +1703,11 @@ export default function SinglePageATSApp() {
                         : offers.length === 0 ? <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>No offers found in database.</div>
                           : (
                             <table className="data-table">
-                              <thead><tr><th>Candidate</th><th>Demand</th><th>Offered CTC</th><th>Offer Date</th><th>Status</th><th>Actions</th></tr></thead>
+                              <thead><tr><th>Candidate</th><th>Demand</th><th>Offered CTC</th><th>Offer Date</th><th>Risk Level</th><th>Status</th><th>Actions</th></tr></thead>
                               <tbody>
-                                {offers.map(o => (
+                                {offers.map(o => {
+                                  const risk = o.status === 'Declined' ? 'High' : o.status === 'Accepted' ? 'Low' : 'Medium';
+                                  return (
                                   <tr key={o.id}>
                                     <td className="font-medium">{o.candidates?.full_name || '—'}</td>
                                     <td>
@@ -1625,6 +1724,11 @@ export default function SinglePageATSApp() {
                                     </td>
                                     <td>{o.offered_ctc ? `₹${o.offered_ctc}L` : '—'}</td>
                                     <td>{o.offer_date}</td>
+                                    <td>
+                                      <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: '700', backgroundColor: risk === 'High' ? '#fee2e2' : risk === 'Medium' ? '#fef3c7' : '#dcfce7', color: risk === 'High' ? '#dc2626' : risk === 'Medium' ? '#d97706' : '#15803d', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                        <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '0.65rem' }}></i> {risk} Risk
+                                      </span>
+                                    </td>
                                     <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: o.status === 'Accepted' ? '#dcfce7' : o.status === 'Declined' ? '#fee2e2' : '#fef3c7', color: o.status === 'Accepted' ? '#166534' : o.status === 'Declined' ? '#dc2626' : '#92400e' }}>{o.status}</span></td>
                                     <td>
                                       {deletingItem?.id === o.id ? (
@@ -1644,7 +1748,7 @@ export default function SinglePageATSApp() {
                                       )}
                                     </td>
                                   </tr>
-                                ))}
+                                ); })}
                               </tbody>
                             </table>
                           )}
@@ -1658,7 +1762,7 @@ export default function SinglePageATSApp() {
                   <div className="card" style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{ fontSize: '0.88rem', fontWeight: '700', color: '#0f172a' }}>Onboarding & BGV Verification Tracker</span>
                     <select value={bgvFilter} onChange={(e) => setBgvFilter(e.target.value)} style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '0.83rem' }}>
-                      <option value="">All BGV Statuses</option><option value="green">✅ Green (Cleared)</option><option value="amber">🟡 Amber (Partial)</option><option value="red">🔴 Red (Failed)</option><option value="in_progress">🔵 In Progress</option>
+                      <option value="">All BGV Statuses</option><option value="green">Green (Cleared)</option><option value="amber">Amber (Partial)</option><option value="red">Red (Failed)</option><option value="in_progress">In Progress</option>
                     </select>
                   </div>
                   <div className="card">
@@ -1690,7 +1794,7 @@ export default function SinglePageATSApp() {
                                           </button>
                                         ) : '—'} {ob.demands?.skill_description ? `— ${ob.demands.skill_description}` : ''}
                                       </td>
-                                      <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: bgvColor.bg, color: bgvColor.text }}>{ob.bgv_status.toUpperCase()}</span></td>
+                                      <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: bgvColor.bg, color: bgvColor.text, display: 'inline-flex', alignItems: 'center', gap: '4px' }}><i className={ob.bgv_status === 'green' ? 'fa-solid fa-circle-check' : ob.bgv_status === 'red' ? 'fa-solid fa-circle-xmark' : ob.bgv_status === 'amber' ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-clock'} style={{ fontSize: '0.7rem' }}></i>{ob.bgv_status.toUpperCase()}</span></td>
                                       <td>{ob.actual_joining_date || 'TBD'}</td>
                                       <td><span style={{ padding: '2px 8px', borderRadius: '4px', fontSize: '0.72rem', fontWeight: '600', backgroundColor: ob.status === 'onboarded' ? '#dcfce7' : '#fef3c7', color: ob.status === 'onboarded' ? '#166534' : '#92400e' }}>{ob.status}</span></td>
                                     </tr>
@@ -3191,83 +3295,158 @@ export default function SinglePageATSApp() {
                   </div>
                 )}
 
-                <form onSubmit={handleCreateQuickCandidate} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                <form onSubmit={handleCreateQuickCandidate} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Full Name *</label>
+                    <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Candidate Full Name *</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Rahul Sharma"
+                      placeholder="e.g. Ankit Verma"
                       value={quickCandidateForm.full_name}
                       onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, full_name: e.target.value })}
-                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                      style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
                     />
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Phone Number</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. 9876543210"
-                      value={quickCandidateForm.phone}
-                      onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, phone: e.target.value })}
-                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
-                    />
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Phone Number *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. +91 9876543210"
+                        value={quickCandidateForm.phone}
+                        onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, phone: e.target.value })}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Email Address *</label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="e.g. ankit@gmail.com"
+                        value={quickCandidateForm.email}
+                        onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, email: e.target.value })}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Email Address</label>
-                    <input
-                      type="email"
-                      placeholder="e.g. rahul@example.com"
-                      value={quickCandidateForm.email}
-                      onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, email: e.target.value })}
-                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
-                    />
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Current Company</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. TCS / Infosys"
+                        value={quickCandidateForm.current_company}
+                        onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, current_company: e.target.value })}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Current Location</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Bangalore"
+                        value={quickCandidateForm.current_location}
+                        onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, current_location: e.target.value })}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Current Company</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. TCS / Infosys"
-                      value={quickCandidateForm.current_company}
-                      onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, current_company: e.target.value })}
-                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
-                    />
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Current CTC</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="12 LPA"
+                        value={quickCandidateForm.current_ctc}
+                        onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, current_ctc: e.target.value })}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Expected CTC</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="16 LPA"
+                        value={quickCandidateForm.expected_ctc}
+                        onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, expected_ctc: e.target.value })}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Total Exp (Yrs)</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        placeholder="6"
+                        value={quickCandidateForm.total_experience}
+                        onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, total_experience: e.target.value })}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Notice Period</label>
+                      <select
+                        value={quickCandidateForm.notice_period}
+                        onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, notice_period: e.target.value })}
+                        style={{ width: '100%', padding: '7px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', backgroundColor: '#fff' }}
+                      >
+                        <option value="Immediate">Immediate</option>
+                        <option value="15 Days">15 Days</option>
+                        <option value="30 Days">30 Days</option>
+                        <option value="60 Days">60 Days</option>
+                        <option value="90 Days">90 Days</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Location</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Bengaluru / Pune"
-                      value={quickCandidateForm.current_location}
-                      onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, current_location: e.target.value })}
-                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
-                    />
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '10px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Key Skills</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. React, Java, Spring Boot, Microservices"
+                        value={quickCandidateForm.skills}
+                        onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, skills: e.target.value })}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Source Portal</label>
+                      <select
+                        value={quickCandidateForm.source}
+                        onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, source: e.target.value })}
+                        style={{ width: '100%', padding: '7px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem', backgroundColor: '#fff' }}
+                      >
+                        <option value="naukri">Naukri</option>
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="direct">Direct Portal</option>
+                        <option value="referral">Referral</option>
+                        <option value="others">Others</option>
+                      </select>
+                    </div>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: '#334155', marginBottom: '3px' }}>Current CTC (LPA)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      placeholder="e.g. 12"
-                      value={quickCandidateForm.current_ctc}
-                      onChange={(e) => setQuickCandidateForm({ ...quickCandidateForm, current_ctc: e.target.value })}
-                      style={{ width: '100%', padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
-                    />
-                  </div>
-                  <div style={{ gridColumn: 'span 3', display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
                     <button
                       type="button"
                       onClick={() => setShowQuickAddCandidate(false)}
-                      style={{ padding: '6px 14px', border: '1px solid #cbd5e1', backgroundColor: '#fff', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}
+                      style={{ padding: '7px 16px', border: '1px solid #cbd5e1', backgroundColor: '#fff', borderRadius: '6px', fontSize: '0.82rem', cursor: 'pointer', fontWeight: '600' }}
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={quickCandidateSubmitting}
-                      style={{ padding: '6px 16px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}
+                      style={{ padding: '7px 18px', backgroundColor: '#2563eb', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '0.82rem', cursor: 'pointer' }}
                     >
-                      {quickCandidateSubmitting ? 'Saving...' : 'Save & Auto-Select Candidate'}
+                      {quickCandidateSubmitting ? 'Saving...' : 'Save Candidate Profile'}
                     </button>
                   </div>
                 </form>
